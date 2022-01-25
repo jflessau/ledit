@@ -1,0 +1,11 @@
+version: '2'
+services:
+  db:
+    image: postgres:14.1-alpine
+    restart: always
+    environment:
+      - POSTGRES_DB=ledit
+      - POSTGRES_USER=dbuser
+      - POSTGRES_PASSWORD=password
+    ports:
+      - "6432:5432"
