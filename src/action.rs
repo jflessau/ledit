@@ -3,7 +3,7 @@ use crate::{
     handler::{
         info::{handle_help, handle_start},
         task::{handle_add_task, handle_delete_task, handle_list_tasks, handle_set_task_repetition},
-        todo_list::handle_get_todo_lists,
+        todos::handle_get_todos,
     },
 };
 use frankenstein::{objects::CallbackQuery, Message, SendMessageParams, SendMessageParamsBuilder};
@@ -18,26 +18,10 @@ pub enum Action<'a> {
     UnknownCallback(&'a CallbackQuery),
     Start(&'a Message),
     Help(&'a Message),
-    AddTask {
-        title: String,
-        message: &'a Message,
-    },
+    AddTask { title: String, message: &'a Message },
     ListTasks(&'a Message),
-    DeleteTask {
-        num: i64,
-        message: &'a Message,
-    },
-    SetTaskInterval {
-        task_id: Uuid,
-        interval_days: i64,
-        chat_id: i64,
-    },
-    GetTodoLists {
-        chat_id: i64,
-    },
-    // TODO - GetTodos: generate and list todays todo-lists
-    // TODO - GetMe: get personal todo list for today
-    // TODO - EditTask: Edit task
+    DeleteTask { num: i64, message: &'a Message },
+    GetTodos { chat_id: i64 },
 }
 
 impl<'a> Action<'a> {
@@ -77,42 +61,44 @@ impl<'a> Action<'a> {
             return Action::DeleteTask { num, message };
         }
 
-        // get todo lists
-        let get_todo_re = Regex::new(r"\A((?i)/todo(?-i))").expect("get_todo_re construction failed");
+        // get todos
+        let get_todo_re = Regex::new(r"\A((?i)/todos(?-i))").expect("get_todos_re construction failed");
         if get_todo_re.captures(&s).is_some() {
-            return Action::GetTodoLists {
+            return Action::GetTodos {
                 chat_id: message.chat.id,
             };
         }
 
+        // unknown
         Action::UnknownMessage(message)
     }
 
-    pub fn from_callback(callback: &'a CallbackQuery) -> Self {
-        let s = callback.data.clone().unwrap_or_else(|| "".to_string());
+    // pub fn from_callback(callback: &'a CallbackQuery) -> Self {
+    //     let s = callback.data.clone().unwrap_or_else(|| "".to_string());
 
-        // set task repetition
-        let task_recurring_re = Regex::new(r"\A(?i)/callback(?-i)([ ]*)([a-f0-9-]*)([ ]*)([0-9]{1,3})")
-            .expect("building task_recurring_re failed");
-        if let Some(caps) = task_recurring_re.captures(&s) {
-            let uuid_str = caps
-                .get(2)
-                .expect("caps get 2 failed")
-                .as_str()
-                .parse()
-                .unwrap_or(Uuid::new_v4().to_string());
-            let interval_days: i64 = caps.get(4).expect("caps get 4 failed").as_str().parse().unwrap_or(1);
-            if let (Ok(id), Some(message)) = (Uuid::from_str(&uuid_str), callback.message.as_ref()) {
-                return Action::SetTaskInterval {
-                    task_id: id,
-                    interval_days,
-                    chat_id: message.chat.id,
-                };
-            }
-        }
+    //     // set task repetition
+    //     let task_recurring_re = Regex::new(r"\A(?i)/callback(?-i)([ ]*)([a-f0-9-]*)([ ]*)([0-9]{1,3})")
+    //         .expect("building task_recurring_re failed");
+    //     if let Some(caps) = task_recurring_re.captures(&s) {
+    //         let uuid_str = caps
+    //             .get(2)
+    //             .expect("caps get 2 failed")
+    //             .as_str()
+    //             .parse()
+    //             .unwrap_or(Uuid::new_v4().to_string());
+    //         let interval_days: i64 = caps.get(4).expect("caps get 4 failed").as_str().parse().unwrap_or(1);
+    //         if let (Ok(id), Some(message)) = (Uuid::from_str(&uuid_str), callback.message.as_ref()) {
+    //             return Action::SetTaskInterval {
+    //                 task_id: id,
+    //                 interval_days,
+    //                 chat_id: message.chat.id,
+    //             };
+    //         }
+    //     }
 
-        Action::UnknownCallback(callback)
-    }
+    //     // unknown
+    //     Action::UnknownCallback(callback)
+    // }
 
     pub async fn execute(self, pool: &Pool<Postgres>) -> Result<SendMessageParams, LeditError> {
         let res = match self {
@@ -121,6 +107,7 @@ impl<'a> Action<'a> {
             Action::AddTask { title, message } => handle_add_task(title, message, pool).await?,
             Action::ListTasks(message) => handle_list_tasks(message, pool).await?,
             Action::DeleteTask { num, message } => handle_delete_task(num, message, pool).await?,
+            Action::GetTodos { chat_id } => handle_get_todos(chat_id, pool).await?,
             Action::UnknownMessage(message) => SendMessageParamsBuilder::default()
                 .chat_id(message.chat.id)
                 .text("Say what?")
@@ -129,12 +116,6 @@ impl<'a> Action<'a> {
                 .chat_id(callback.message.as_ref().unwrap().chat.id)
                 .text("Say what?")
                 .build()?,
-            Action::SetTaskInterval {
-                task_id,
-                interval_days,
-                chat_id,
-            } => handle_set_task_repetition(task_id, interval_days, chat_id, pool).await?,
-            Action::GetTodoLists { chat_id } => handle_get_todo_lists(chat_id, pool).await?,
         };
 
         Ok(res)

@@ -12,13 +12,15 @@ create table tasks (
   id uuid primary key not null,
   chat_id int8 not null,
   description text not null,
-  interval_days int8
+  interval_days int8,
+  deleted bool not null default false
 );
 
 create table executions (
   id uuid not null primary key,
   task_id uuid not null,
   assigned_user uuid not null,
-  completed_at timestamptz,
+  scheduled_for date not null,
+  completed_at date,
   completed_by uuid
 );

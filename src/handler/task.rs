@@ -10,6 +10,7 @@ pub struct Task {
     pub chat_id: i64,
     pub description: String,
     pub interval_days: Option<i64>,
+    pub deleted: bool,
 }
 
 pub async fn handle_add_task(
@@ -35,7 +36,7 @@ pub async fn handle_add_task(
     .fetch_one(pool)
     .await?;
 
-    let buttons = simple_inline_keyboard(vec![
+    let _buttons = simple_inline_keyboard(vec![
         ("🔁 daily".to_string(), format!("/callback {} {}", task.id, 1)),
         ("🔁 weekly".to_string(), format!("/callback {} {}", task.id, 7)),
         ("🔁 monthly".to_string(), format!("/callback {} {}", task.id, 30)),
@@ -44,16 +45,14 @@ pub async fn handle_add_task(
     let send_message_params = SendMessageParamsBuilder::default()
         .chat_id(message.chat.id)
         .text(format!("New task added:\n\n{}", title))
-        .reply_markup(buttons)
+        // .reply_markup(buttons)
         .build()?;
 
     Ok(send_message_params)
 }
 
 pub async fn handle_list_tasks(message: &Message, pool: &Pool<Postgres>) -> Result<SendMessageParams, LeditError> {
-    let mut text = get_task_list_string(message, pool).await?;
-
-    text.push_str("\n\nHint: Use /delete 1\nto delete the first task.");
+    let text = get_task_list_string(message, pool, true).await?;
 
     let send_message_params = SendMessageParamsBuilder::default()
         .chat_id(message.chat.id)
@@ -70,7 +69,7 @@ pub async fn handle_delete_task(
 ) -> Result<SendMessageParams, LeditError> {
     let task_to_delete = sqlx::query_as!(
         Task,
-        "select * from tasks where chat_id = $1 order by description asc offset $2",
+        "select * from tasks where chat_id = $1 and deleted = false order by description asc offset $2",
         message.chat.id,
         num - 1
     )
@@ -81,7 +80,7 @@ pub async fn handle_delete_task(
         sqlx::query_as!(
             Task,
             r#"
-                delete from tasks where id=$1
+                update tasks set deleted = true where id=$1
             "#,
             task_to_delete.id
         )
@@ -89,7 +88,7 @@ pub async fn handle_delete_task(
         .await?;
 
         let mut text = format!("Deleted this task:\n\n{}\n\n", task_to_delete.description);
-        text.push_str(&get_task_list_string(message, pool).await?);
+        text.push_str(&get_task_list_string(message, pool, false).await?);
 
         let send_message_params = SendMessageParamsBuilder::default()
             .chat_id(message.chat.id)
@@ -139,10 +138,10 @@ pub async fn handle_set_task_repetition(
     Ok(send_message_params)
 }
 
-async fn get_task_list_string(message: &Message, pool: &Pool<Postgres>) -> Result<String, LeditError> {
+async fn get_task_list_string(message: &Message, pool: &Pool<Postgres>, hint: bool) -> Result<String, LeditError> {
     let tasks = sqlx::query_as!(
         Task,
-        "select * from tasks where chat_id = $1 order by description asc",
+        "select * from tasks where chat_id = $1 and deleted = false order by description asc",
         message.chat.id,
     )
     .fetch_all(pool)
@@ -156,7 +155,9 @@ async fn get_task_list_string(message: &Message, pool: &Pool<Postgres>) -> Resul
     }
 
     if tasks.len() < 1 {
-        text.push_str("\nNo task found.");
+        text = "No task found.".to_string();
+    } else if hint {
+        text.push_str("\n\nHint: Use /delete 1\nto delete the first task.");
     }
 
     Ok(text)

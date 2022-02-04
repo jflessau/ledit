@@ -47,10 +47,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
                         register_chat_member(&message, &pool).await?;
 
                         Some(action.execute(&pool).await)
-                    } else if let Some(callback) = update.callback_query {
-                        let action = Action::from_callback(&callback);
+                    } else if let Some(_callback) = update.callback_query {
+                        // let action = Action::from_callback(&callback);
 
-                        Some(action.execute(&pool).await)
+                        // Some(action.execute(&pool).await)
+
+                        None
                     } else {
                         None
                     };
