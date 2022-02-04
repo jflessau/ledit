@@ -34,15 +34,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
     loop {
         let result = api.get_updates(&update_params);
 
-        println!("result: {:?}", result);
+        // println!("result: {:?}", result);
 
         match result {
             Ok(response) =>
                 for update in response.result {
-                    println!("update: {:#?}", update);
+                    // println!("update: {:#?}", update);
 
                     let response = if let Some(message) = update.message {
                         let action = Action::from_message(&message);
+                        println!("register chat member");
                         register_chat_member(&message, &pool).await?;
 
                         Some(action.execute(&pool).await)

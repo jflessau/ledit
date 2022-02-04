@@ -16,7 +16,7 @@ pub struct Execution {
     pub task_id: Uuid,
     pub completed_at: Option<DateTime<Utc>>,
     pub assigned_user: Option<Uuid>,
-    pub completed_by: Option<i64>,
+    pub completed_by: Option<Uuid>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -28,10 +28,14 @@ pub struct TodoListItem {
 }
 
 pub async fn handle_get_todo_lists(chat_id: i64, pool: &Pool<Postgres>) -> Result<SendMessageParams, LeditError> {
+    println!("a");
+
     generate_todo_lists(chat_id, pool).await?;
+    println!("b");
 
     let todo_list_items = get_todo_list_items(chat_id, pool).await?;
 
+    println!("c");
     let todo_lists = todo_list_items
         .into_iter()
         .map(|v| (v.username.clone(), v))

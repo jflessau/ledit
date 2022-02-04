@@ -1,5 +1,3 @@
-drop table ratings;
-
 drop table executions;
 
 drop table tasks;

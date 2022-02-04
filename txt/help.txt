@@ -1,4 +1,4 @@
 /help - this message
-/add <your task here> - add a task
+/add <your task> - add a task
 /list - list all tasks
 /me - get user info & todo-list

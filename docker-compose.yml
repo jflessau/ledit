@@ -2,7 +2,6 @@ version: '2'
 services:
   db:
     image: postgres:14.1-alpine
-    restart: always
     environment:
       - POSTGRES_DB=ledit
       - POSTGRES_USER=dbuser
