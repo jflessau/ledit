@@ -10,5 +10,6 @@ RUN eval `ssh-agent -s` && \
 # copy important stuff to smaller base image
 FROM alpine
 COPY --from=build /volume/target/x86_64-unknown-linux-musl/release/ledit /
+COPY ./txt /txt
 
 CMD ["/ledit"]
