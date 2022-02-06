@@ -1,15 +1,14 @@
-use dotenv::dotenv;
-use frankenstein::{Api, GetUpdatesParamsBuilder, TelegramApi};
-use std::env;
 #[macro_use]
 extern crate log;
-mod error;
-use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
+use dotenv::dotenv;
+use frankenstein::{GetUpdatesParamsBuilder, TelegramApi};
 use std::error::Error;
 
 mod action;
+mod error;
 mod handler;
 mod interval;
+mod util;
 use action::Action;
 use handler::chat_member::register_chat_member;
 use interval::re_schedule_tasks;
@@ -28,7 +27,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 }
 
 async fn listen_for_updates() -> Result<(), error::LeditError> {
-    let (pool, api) = get_pool_and_api().await;
+    let (pool, api) = util::get_pool_and_api().await;
 
     sqlx::migrate!("./migrations").run(&pool).await?;
 
@@ -48,8 +47,6 @@ async fn listen_for_updates() -> Result<(), error::LeditError> {
                         register_chat_member(&message, &pool).await?;
 
                         Some(action.execute(&pool).await)
-                    } else if let Some(_callback) = update.callback_query {
-                        None
                     } else {
                         None
                     };
@@ -72,17 +69,4 @@ async fn listen_for_updates() -> Result<(), error::LeditError> {
             },
         }
     }
-}
-
-pub async fn get_pool_and_api() -> (Pool<Postgres>, Api) {
-    let token = env::var("TOKEN").expect("missing TOKEN env var");
-    let api = Api::new(&token);
-    let database_url = env::var("DATABASE_URL").expect("missing DATABASE_URL env var");
-    let pool = PgPoolOptions::new()
-        .max_connections(16)
-        .connect(&database_url)
-        .await
-        .expect("failed to get connection pool");
-
-    (pool, api)
 }

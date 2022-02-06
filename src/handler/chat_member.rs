@@ -1,5 +1,6 @@
 use crate::error::LeditError;
 use frankenstein::{objects::User, Message};
+use rand::{rngs::StdRng, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, Pool, Postgres};
 use uuid::Uuid;
@@ -55,4 +56,21 @@ pub async fn register_chat_member(message: &Message, pool: &Pool<Postgres>) -> R
     }
 
     Ok(())
+}
+
+pub async fn get_random_chat_member(chat_id: i64, pool: &Pool<Postgres>) -> Result<Uuid, LeditError> {
+    let users = sqlx::query!(r#"select id from chat_members where chat_id = $1"#, chat_id)
+        .fetch_all(pool)
+        .await?
+        .into_iter()
+        .map(|v| v.id)
+        .collect::<Vec<Uuid>>();
+
+    let mut rng: StdRng = SeedableRng::from_entropy();
+    let n = rng.gen_range(0..users.len());
+
+    match users.get(n).cloned() {
+        Some(v) => Ok(v),
+        None => Err(LeditError::RndUser),
+    }
 }

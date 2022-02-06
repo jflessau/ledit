@@ -1,8 +1,10 @@
-use crate::{error::LeditError, handler::today};
+use crate::{
+    error::LeditError,
+    handler::{chat_member::get_random_chat_member, today},
+};
 use chrono::NaiveDate;
 use frankenstein::{objects::User, Message, SendMessageParams, SendMessageParamsBuilder};
 use itertools::Itertools;
-use rand::{rngs::StdRng, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, Pool, Postgres};
 use uuid::Uuid;
@@ -31,45 +33,38 @@ pub async fn handle_add_task(
         }
     };
 
-    if let Some(assigned_user) = get_random_chat_member(message.chat.id, pool).await? {
-        let task = sqlx::query_as!(
-            Task,
-            r#"
-                insert into tasks (
-                    id,
-                    chat_id,
-                    description,
-                    
-                    interval_days,
-                    assigned_user
+    let assigned_user = get_random_chat_member(message.chat.id, pool).await?;
 
-                )
-                values ( $1, $2, $3, $4, $5 )
-                RETURNING *
-            "#,
-            Uuid::new_v4(),
-            message.chat.id,
-            &title,
-            interval_days,
-            assigned_user,
-        )
-        .fetch_one(pool)
-        .await?;
+    let task = sqlx::query_as!(
+        Task,
+        r#"
+            insert into tasks (
+                id,
+                chat_id,
+                description,
+                
+                interval_days,
+                assigned_user
 
-        let send_message_params = SendMessageParamsBuilder::default()
-            .chat_id(message.chat.id)
-            .text(format!("New task added:\n\n{}", task.description))
-            .build()?;
+            )
+            values ( $1, $2, $3, $4, $5 )
+            RETURNING *
+        "#,
+        Uuid::new_v4(),
+        message.chat.id,
+        &title,
+        interval_days,
+        assigned_user,
+    )
+    .fetch_one(pool)
+    .await?;
 
-        Ok(send_message_params)
-    } else {
-        let send_message_params = SendMessageParamsBuilder::default()
-            .chat_id(message.chat.id)
-            .text("Failed to assign task.".to_string())
-            .build()?;
+    let send_message_params = SendMessageParamsBuilder::default()
+        .chat_id(message.chat.id)
+        .text(format!("New task added:\n\n{}", task.description))
+        .build()?;
 
-        Ok(send_message_params)
-    }
+    Ok(send_message_params)
 }
 
 pub async fn handle_list_tasks(message: &Message, pool: &Pool<Postgres>) -> Result<SendMessageParams, LeditError> {
@@ -234,7 +229,9 @@ pub async fn get_todos(chat_id: i64, pool: &Pool<Postgres>) -> Result<String, Le
             from tasks as t
             join chat_members as c on c.id = t.assigned_user
             where 
-                t.chat_id = $1 and t.scheduled_for <= $2
+                t.chat_id = $1
+                and t.scheduled_for <= $2
+                and c.chat_id = $1
             order by t.done_by desc, t.description asc
         "#,
         chat_id,
@@ -277,18 +274,4 @@ pub async fn get_todos(chat_id: i64, pool: &Pool<Postgres>) -> Result<String, Le
     };
 
     Ok(text)
-}
-
-pub async fn get_random_chat_member(chat_id: i64, pool: &Pool<Postgres>) -> Result<Option<Uuid>, LeditError> {
-    let users = sqlx::query!(r#"select id from chat_members where chat_id = $1"#, chat_id)
-        .fetch_all(pool)
-        .await?
-        .into_iter()
-        .map(|v| v.id)
-        .collect::<Vec<Uuid>>();
-
-    let mut rng: StdRng = SeedableRng::from_entropy();
-    let n = rng.gen_range(0..users.len());
-
-    Ok(users.get(n).cloned())
 }

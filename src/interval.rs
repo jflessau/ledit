@@ -1,14 +1,14 @@
 use crate::{
     error,
-    get_pool_and_api,
-    handler::task::{get_random_chat_member, Task},
+    handler::{chat_member::get_random_chat_member, task::Task},
+    util,
 };
 use tokio::time::{sleep, Duration};
 
 pub async fn re_schedule_tasks() -> Result<(), error::LeditError> {
-    let (pool, _) = get_pool_and_api().await;
+    let (pool, _) = util::get_pool_and_api().await;
     loop {
-        sleep(Duration::from_millis(100000)).await;
+        sleep(Duration::from_millis(1000)).await;
 
         // re-schedule tasks
         let tasks_to_re_schedule = sqlx::query_as!(
@@ -26,7 +26,7 @@ pub async fn re_schedule_tasks() -> Result<(), error::LeditError> {
         .await?;
 
         if !tasks_to_re_schedule.is_empty() {
-            println!("reschedule {} tasks", tasks_to_re_schedule.len());
+            println!("reschedule {:#?}", tasks_to_re_schedule);
         }
 
         for task in tasks_to_re_schedule {
@@ -37,9 +37,9 @@ pub async fn re_schedule_tasks() -> Result<(), error::LeditError> {
                     set
                         done_by = null,
                         scheduled_for = now(),
-                        assigned_user = $1
+                        assigned_user = $2
                     where 
-                        id = $2
+                        id = $1
                 "#,
                 task.id,
                 assigned_user

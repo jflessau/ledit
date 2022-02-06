@@ -58,6 +58,19 @@
       ]
     }
   },
+  "147433f5117cdebe8fc40104ac76a9ccbea73b8c0f2206e62e74d87a9134ee63": {
+    "query": "\n                    update tasks\n                    set\n                        done_by = null,\n                        scheduled_for = now(),\n                        assigned_user = $2\n                    where \n                        id = $1\n                ",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid"
+        ]
+      },
+      "nullable": []
+    }
+  },
   "1977caf4034f28690081084385bf2125270237679e334b23a957108dfb137db4": {
     "query": "select * from tasks where chat_id = $1 order by description asc",
     "describe": {
@@ -114,28 +127,8 @@
       ]
     }
   },
-  "6b722ea4243e7294f5334562c12780d1a0ca88e79b158ce2dbe4d4f1329172da": {
-    "query": "select id from chat_members where chat_id = $1",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "id",
-          "type_info": "Uuid"
-        }
-      ],
-      "parameters": {
-        "Left": [
-          "Int8"
-        ]
-      },
-      "nullable": [
-        false
-      ]
-    }
-  },
-  "84c06002c35605ca0b628fae865ef542b94df06c8fc2e54d8172cdeb9e18ae19": {
-    "query": "\n                insert into tasks (\n                    id,\n                    chat_id,\n                    description,\n                    \n                    interval_days,\n                    assigned_user\n\n                )\n                values ( $1, $2, $3, $4, $5 )\n                RETURNING *\n            ",
+  "2cb921b79f18fc1bf4df1712ce7aacf3ee1df9ed3f99cdffd92188d0d2bfb4db": {
+    "query": "\n            insert into tasks (\n                id,\n                chat_id,\n                description,\n                \n                interval_days,\n                assigned_user\n\n            )\n            values ( $1, $2, $3, $4, $5 )\n            RETURNING *\n        ",
     "describe": {
       "columns": [
         {
@@ -191,6 +184,89 @@
         false,
         false,
         true
+      ]
+    }
+  },
+  "509c9865283e671ef3249440da572d9da42779b76c05f78c3d19ae4ea774bfd7": {
+    "query": "\n            select \n                t.id,\n                t.chat_id,\n                t.description,\n                t.interval_days,\n                t.assigned_user,\n                t.scheduled_for,\n                t.done_by,\n\n                c.username\n            from tasks as t\n            join chat_members as c on c.id = t.assigned_user\n            where \n                t.chat_id = $1\n                and t.scheduled_for <= $2\n                and c.chat_id = $1\n            order by t.done_by desc, t.description asc\n        ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "chat_id",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 2,
+          "name": "description",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "interval_days",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 4,
+          "name": "assigned_user",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 5,
+          "name": "scheduled_for",
+          "type_info": "Date"
+        },
+        {
+          "ordinal": 6,
+          "name": "done_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 7,
+          "name": "username",
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Date"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        true,
+        false
+      ]
+    }
+  },
+  "6b722ea4243e7294f5334562c12780d1a0ca88e79b158ce2dbe4d4f1329172da": {
+    "query": "select id from chat_members where chat_id = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      },
+      "nullable": [
+        false
       ]
     }
   },
@@ -268,69 +344,6 @@
       ]
     }
   },
-  "93bde0c14b14698b16ded8e539ab3cab517019ac3054702b3b7838561a16b7a9": {
-    "query": "\n            select \n                t.id,\n                t.chat_id,\n                t.description,\n                t.interval_days,\n                t.assigned_user,\n                t.scheduled_for,\n                t.done_by,\n\n                c.username\n            from tasks as t\n            join chat_members as c on c.id = t.assigned_user\n            where \n                t.chat_id = $1 and t.scheduled_for <= $2\n            order by t.done_by desc, t.description asc\n        ",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "id",
-          "type_info": "Uuid"
-        },
-        {
-          "ordinal": 1,
-          "name": "chat_id",
-          "type_info": "Int8"
-        },
-        {
-          "ordinal": 2,
-          "name": "description",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 3,
-          "name": "interval_days",
-          "type_info": "Int8"
-        },
-        {
-          "ordinal": 4,
-          "name": "assigned_user",
-          "type_info": "Uuid"
-        },
-        {
-          "ordinal": 5,
-          "name": "scheduled_for",
-          "type_info": "Date"
-        },
-        {
-          "ordinal": 6,
-          "name": "done_by",
-          "type_info": "Uuid"
-        },
-        {
-          "ordinal": 7,
-          "name": "username",
-          "type_info": "Text"
-        }
-      ],
-      "parameters": {
-        "Left": [
-          "Int8",
-          "Date"
-        ]
-      },
-      "nullable": [
-        false,
-        false,
-        false,
-        true,
-        false,
-        false,
-        true,
-        false
-      ]
-    }
-  },
   "958f7b3ab1edc82f348341e4f10a3a9ffe4f245cb18367a4c5ce8545b0524b61": {
     "query": "select * from tasks where chat_id = $1 order by description asc offset $2",
     "describe": {
@@ -398,19 +411,6 @@
           "Int8",
           "Int8",
           "Text"
-        ]
-      },
-      "nullable": []
-    }
-  },
-  "ab050d2882dc076ea06ab5d5b888c3adf6094460801d93bace216309eec73d0a": {
-    "query": "\n                    update tasks\n                    set\n                        done_by = null,\n                        scheduled_for = now(),\n                        assigned_user = $1\n                    where \n                        id = $2\n                ",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Uuid"
         ]
       },
       "nullable": []
