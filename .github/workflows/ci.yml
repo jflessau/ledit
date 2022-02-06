@@ -15,7 +15,7 @@ jobs:
       runs-on: ubuntu-latest
       steps:
         - name: send message
-          uses: appleboy/telegram-action@main
+          uses: appleboy/telegram-action@master
           with:
             to: ${{ secrets.TELEGRAM_TO }}
             token: ${{ secrets.TELEGRAM_TOKEN }}
@@ -79,7 +79,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v2
         with:
-          context: ./tingler/
+          context: .
           platforms: linux/amd64
           push: true
           tags: |
