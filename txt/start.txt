@@ -1,1 +1,5 @@
-Lorem ipsum dolor sit amet.
+Hi there 👋
+
+I'm Collabot and I'm here to help you organizing tasks in telegram group chats. 
+
+Use the /help command to learn about my features 🙂
