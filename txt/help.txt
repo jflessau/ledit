@@ -1,4 +1,4 @@
 /help - this message
-/add <your task> - add a task
-/list - list all tasks
-/me - get user info & todo-list
+/add <your task> - add task
+/add every 2 days: <your task> - add recurring task
+/todos - list all tasks

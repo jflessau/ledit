@@ -1,3 +1,4 @@
+use chrono::{Datelike, NaiveDate, Utc};
 use frankenstein::{
     api_params::ReplyMarkup,
     objects::{InlineKeyboardButton, InlineKeyboardMarkup},
@@ -6,9 +7,8 @@ use frankenstein::{
 pub mod chat_member;
 pub mod info;
 pub mod task;
-pub mod todos;
 
-pub fn simple_inline_keyboard(button_data: Vec<(String, String)>) -> ReplyMarkup {
+pub fn _simple_inline_keyboard(button_data: Vec<(String, String)>) -> ReplyMarkup {
     let buttons = button_data
         .into_iter()
         .map(|(label, callback_str)| {
@@ -28,4 +28,9 @@ pub fn simple_inline_keyboard(button_data: Vec<(String, String)>) -> ReplyMarkup
     ReplyMarkup::InlineKeyboardMarkup(InlineKeyboardMarkup {
         inline_keyboard: buttons,
     })
+}
+
+pub fn today() -> NaiveDate {
+    let today = Utc::today();
+    NaiveDate::from_ymd(today.year(), today.month(), today.day())
 }

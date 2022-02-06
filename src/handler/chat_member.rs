@@ -14,6 +14,7 @@ pub struct ChatMember {
 }
 
 pub async fn register_chat_member(message: &Message, pool: &Pool<Postgres>) -> Result<(), LeditError> {
+    println!("register chat member");
     if let Some(User {
         id,
         first_name,

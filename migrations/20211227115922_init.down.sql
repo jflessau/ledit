@@ -1,5 +1,3 @@
-drop table executions;
-
 drop table tasks;
 
 drop table chat_members;

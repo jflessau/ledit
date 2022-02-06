@@ -1,5 +1,4 @@
 use frankenstein::api_params::SendMessageParamsBuilderError;
-use sqlx;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -8,8 +7,8 @@ pub enum LeditError {
     SendMessageError,
     #[error("Database error")]
     DatabaseError,
-    #[error("Unknown error")]
-    Unknown,
+    // #[error("Unknown error")]
+    // Unknown,
 }
 
 impl From<SendMessageParamsBuilderError> for LeditError {
@@ -18,4 +17,8 @@ impl From<SendMessageParamsBuilderError> for LeditError {
 
 impl From<sqlx::Error> for LeditError {
     fn from(_err: sqlx::Error) -> Self { LeditError::DatabaseError }
+}
+
+impl From<sqlx::migrate::MigrateError> for LeditError {
+    fn from(_err: sqlx::migrate::MigrateError) -> Self { LeditError::DatabaseError }
 }
