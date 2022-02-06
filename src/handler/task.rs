@@ -31,17 +31,7 @@ pub async fn handle_add_task(
         }
     };
 
-    let users = sqlx::query!(r#"select id from chat_members where chat_id = $1"#, message.chat.id,)
-        .fetch_all(pool)
-        .await?
-        .into_iter()
-        .map(|v| v.id)
-        .collect::<Vec<Uuid>>();
-
-    let mut rng: StdRng = SeedableRng::from_entropy();
-    let n = rng.gen_range(0..users.len());
-    println!("n: {}", n);
-    if let Some(assigned_user) = users.get(n) {
+    if let Some(assigned_user) = get_random_chat_member(message.chat.id, pool).await? {
         let task = sqlx::query_as!(
             Task,
             r#"
@@ -287,4 +277,18 @@ pub async fn get_todos(chat_id: i64, pool: &Pool<Postgres>) -> Result<String, Le
     };
 
     Ok(text)
+}
+
+pub async fn get_random_chat_member(chat_id: i64, pool: &Pool<Postgres>) -> Result<Option<Uuid>, LeditError> {
+    let users = sqlx::query!(r#"select id from chat_members where chat_id = $1"#, chat_id)
+        .fetch_all(pool)
+        .await?
+        .into_iter()
+        .map(|v| v.id)
+        .collect::<Vec<Uuid>>();
+
+    let mut rng: StdRng = SeedableRng::from_entropy();
+    let n = rng.gen_range(0..users.len());
+
+    Ok(users.get(n).cloned())
 }
