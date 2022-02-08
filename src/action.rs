@@ -2,17 +2,17 @@ use crate::{
     error::LeditError,
     handler::{
         info::{handle_help, handle_start},
-        task::{handle_add_task, handle_check_task, handle_delete_task, handle_list_tasks},
+        task::{handle_add_task, handle_check_task, handle_delete_task, handle_list_todos},
     },
 };
 use frankenstein::{Message, SendMessageParams};
 use regex::Regex;
 use sqlx::{Pool, Postgres};
+use std::fmt;
 
 #[derive(Debug)]
 pub enum Action<'a> {
     UnknownMessage,
-    // UnknownCallback(&'a CallbackQuery),
     Start(&'a Message),
     Help(&'a Message),
     AddTask {
@@ -20,7 +20,7 @@ pub enum Action<'a> {
         interval_days: Option<i64>,
         message: &'a Message,
     },
-    ListTasks(&'a Message),
+    ListTodos(&'a Message),
     DeleteTask {
         num: i64,
         message: &'a Message,
@@ -29,6 +29,24 @@ pub enum Action<'a> {
         num: i64,
         message: &'a Message,
     },
+}
+
+impl fmt::Display for Action<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let text = match self {
+            Action::UnknownMessage => "UnknownMessage".to_string(),
+            Action::Start(_) => "Start".to_string(),
+            Action::Help(_) => "Help".to_string(),
+            Action::AddTask {
+                title, interval_days, ..
+            } => format!("AddTask {{ title: {}, interval_days: {:?} }}", title, interval_days),
+            Action::ListTodos(_) => "ListTodos".to_string(),
+            Action::DeleteTask { num, .. } => format!("DeleteTask {{ num: {} }}", num),
+            Action::CheckTask { num, .. } => format!("CheckTask: {{ num: {} }}", num),
+        };
+
+        write!(f, "{}", text)
+    }
 }
 
 impl<'a> Action<'a> {
@@ -85,7 +103,7 @@ impl<'a> Action<'a> {
         // list todos
         let list_tasks_re = Regex::new(r"\A((?i)/todos(?-i))").expect("list_todos_re construction failed");
         if list_tasks_re.captures(&s).is_some() {
-            return Action::ListTasks(message);
+            return Action::ListTodos(message);
         }
 
         // delete task
@@ -103,35 +121,9 @@ impl<'a> Action<'a> {
         }
 
         // unknown
+        tracing::info!("received unknown action, text: {}", s);
         Action::UnknownMessage
     }
-
-    // pub fn from_callback(callback: &'a CallbackQuery) -> Self {
-    //     let s = callback.data.clone().unwrap_or_else(|| "".to_string());
-
-    //     // set task repetition
-    //     let task_recurring_re = Regex::new(r"\A(?i)/callback(?-i)([ ]*)([a-f0-9-]*)([ ]*)([0-9]{1,3})")
-    //         .expect("building task_recurring_re failed");
-    //     if let Some(caps) = task_recurring_re.captures(&s) {
-    //         let uuid_str = caps
-    //             .get(2)
-    //             .expect("caps get 2 failed")
-    //             .as_str()
-    //             .parse()
-    //             .unwrap_or(Uuid::new_v4().to_string());
-    //         let interval_days: i64 = caps.get(4).expect("caps get 4 failed").as_str().parse().unwrap_or(1);
-    //         if let (Ok(id), Some(message)) = (Uuid::from_str(&uuid_str), callback.message.as_ref()) {
-    //             return Action::SetTaskInterval {
-    //                 task_id: id,
-    //                 interval_days,
-    //                 chat_id: message.chat.id,
-    //             };
-    //         }
-    //     }
-
-    //     // unknown
-    //     Action::UnknownCallback(callback)
-    // }
 
     pub async fn execute(self, pool: &Pool<Postgres>) -> Result<Option<SendMessageParams>, LeditError> {
         let res = match self {
@@ -142,14 +134,10 @@ impl<'a> Action<'a> {
                 interval_days,
                 message,
             } => Some(handle_add_task(title, interval_days, message, pool).await?),
-            Action::ListTasks(message) => Some(handle_list_tasks(message, pool).await?),
+            Action::ListTodos(message) => Some(handle_list_todos(message, pool).await?),
             Action::DeleteTask { num, message } => Some(handle_delete_task(num, message, pool).await?),
             Action::CheckTask { num, message } => Some(handle_check_task(num, message, pool).await?),
-            Action::UnknownMessage => None
-            // Action::UnknownCallback(callback) => SendMessageParamsBuilder::default()
-            //     .chat_id(callback.message.as_ref().unwrap().chat.id)
-            //     .text("Say what?")
-            //     .build()?,
+            Action::UnknownMessage => None,
         };
 
         Ok(res)

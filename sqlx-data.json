@@ -58,19 +58,6 @@
       ]
     }
   },
-  "147433f5117cdebe8fc40104ac76a9ccbea73b8c0f2206e62e74d87a9134ee63": {
-    "query": "\n                    update tasks\n                    set\n                        done_by = null,\n                        scheduled_for = now(),\n                        assigned_user = $2\n                    where \n                        id = $1\n                ",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Uuid"
-        ]
-      },
-      "nullable": []
-    }
-  },
   "1977caf4034f28690081084385bf2125270237679e334b23a957108dfb137db4": {
     "query": "select * from tasks where chat_id = $1 order by description asc",
     "describe": {
@@ -250,6 +237,19 @@
       ]
     }
   },
+  "5430c371b8521d1c6b98bd2f38656645ca299889ccd4760ef8664ae5c66e8505": {
+    "query": "\n                update tasks\n                set\n                    done_by = null,\n                    scheduled_for = now(),\n                    assigned_user = $2\n                where \n                    id = $1\n            ",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid"
+        ]
+      },
+      "nullable": []
+    }
+  },
   "6b722ea4243e7294f5334562c12780d1a0ca88e79b158ce2dbe4d4f1329172da": {
     "query": "select id from chat_members where chat_id = $1",
     "describe": {
@@ -270,8 +270,18 @@
       ]
     }
   },
-  "906044b5c596de1ac748261d2a1ede76b7fb5ca84aa008607f4c6070d3e237f9": {
-    "query": "\n                select *\n                from tasks\n                where \n                    interval_days is not null\n                    and done_by is not null\n                    and scheduled_for < now() - interval '1 days' * interval_days\n            ",
+  "70af54bf8878d5860379f5729e55db3355a802118f594d170baea7f342f0b739": {
+    "query": "\n            delete from \n                tasks \n            where \n                done_by is not null \n                and interval_days is null \n                and scheduled_for < now() - interval '1 day'\n        ",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": []
+      },
+      "nullable": []
+    }
+  },
+  "90dc9bed784b8d4e028b8b2252819ce23779067c6f8fee2f8c8cb8cc886ba0a9": {
+    "query": "\n            select *\n            from tasks\n            where \n                interval_days is not null\n                and done_by is not null\n                and scheduled_for < now() - interval '1 days' * interval_days\n        ",
     "describe": {
       "columns": [
         {
@@ -321,26 +331,6 @@
         false,
         false,
         true
-      ]
-    }
-  },
-  "93b9a3025d0346561224cf9022a67a0fc7a7c56075ac5ff65b85a57f7f828224": {
-    "query": "select id from chat_members where telegram_user_id = $1",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "id",
-          "type_info": "Uuid"
-        }
-      ],
-      "parameters": {
-        "Left": [
-          "Int8"
-        ]
-      },
-      "nullable": [
-        false
       ]
     }
   },
@@ -416,6 +406,27 @@
       "nullable": []
     }
   },
+  "a86b6819b16982f269af675d5d573ebf5aec81c227beddd364d85f1ecbdd1eab": {
+    "query": "select id from chat_members where telegram_user_id = $1 and chat_id = $2",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      },
+      "nullable": [
+        false
+      ]
+    }
+  },
   "c54895dc86771b8c8c6d6f2ae00c62a7173654c95d6596b760ae11ab95fdfcff": {
     "query": "\n                delete from tasks where id = $1\n            ",
     "describe": {
@@ -424,16 +435,6 @@
         "Left": [
           "Uuid"
         ]
-      },
-      "nullable": []
-    }
-  },
-  "c6c6afff5b80a3a2faa7decda5ffae64222e82991f565a88ca2ac6d8f02cce27": {
-    "query": "\n                delete from \n                    tasks \n                where \n                    done_by is not null \n                    and interval_days is null \n                    and scheduled_for < now() - interval '1 day'\n            ",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Left": []
       },
       "nullable": []
     }

@@ -15,12 +15,17 @@ use interval::re_schedule_tasks;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    // setup logging
     dotenv().ok();
-    pretty_env_logger::init();
+    if std::env::var_os("RUST_LOG").is_none() {
+        std::env::set_var("RUST_LOG", "info,sqlx=warn")
+    }
+    tracing_subscriber::fmt::init();
 
+    // starting two threads, one for processign telegram api updates and one for time based db interactions
+    tracing::info!("starting bot...");
     let listen_for_updates_thread = tokio::task::spawn(listen_for_updates());
     let re_schedule_tasks_thread = tokio::task::spawn(re_schedule_tasks());
-
     let (_, _) = (listen_for_updates_thread.await?, re_schedule_tasks_thread.await?);
 
     Ok(())
@@ -38,15 +43,27 @@ async fn listen_for_updates() -> Result<(), error::LeditError> {
 
     loop {
         let result = api.get_updates(&update_params);
+        tracing::debug!("received telegram api update");
 
         match result {
             Ok(response) =>
                 for update in response.result {
                     let response = if let Some(message) = update.message {
                         let action = Action::from_message(&message);
-                        register_chat_member(&message, &pool).await?;
+                        tracing::info!("action: {}", action);
 
-                        Some(action.execute(&pool).await)
+                        if let Err(err) = register_chat_member(&message, &pool).await {
+                            tracing::error!("failed to register chat member, err: {}", err);
+                        }
+
+                        let response = action.execute(&pool).await;
+                        match response {
+                            Ok(_) => Some(response),
+                            Err(err) => {
+                                tracing::error!("failed to respond to action, err: {}", err);
+                                None
+                            },
+                        }
                     } else {
                         None
                     };
@@ -65,7 +82,7 @@ async fn listen_for_updates() -> Result<(), error::LeditError> {
                     update_params = update_params_builder.offset(update.update_id + 1).build().unwrap();
                 },
             Err(error) => {
-                error!("failed to get updates: {:?}", error);
+                tracing::error!("failed to process telegram api update, err: {:?}", error);
             },
         }
     }

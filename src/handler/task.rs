@@ -20,7 +20,6 @@ pub struct Task {
     pub scheduled_for: NaiveDate,
     pub done_by: Option<Uuid>,
 }
-
 pub async fn handle_add_task(
     title: String,
     mut interval_days: Option<i64>,
@@ -67,7 +66,7 @@ pub async fn handle_add_task(
     Ok(send_message_params)
 }
 
-pub async fn handle_list_tasks(message: &Message, pool: &Pool<Postgres>) -> Result<SendMessageParams, LeditError> {
+pub async fn handle_list_todos(message: &Message, pool: &Pool<Postgres>) -> Result<SendMessageParams, LeditError> {
     let mut text = get_task_list_string(message, pool).await?;
 
     text.push_str("\n\n\n");
@@ -130,9 +129,13 @@ pub async fn handle_check_task(
     pool: &Pool<Postgres>,
 ) -> Result<SendMessageParams, LeditError> {
     if let Some(User { id, .. }) = message.from.as_ref() {
-        let user = sqlx::query!("select id from chat_members where telegram_user_id = $1", *id as i64)
-            .fetch_one(pool)
-            .await?;
+        let user = sqlx::query!(
+            "select id from chat_members where telegram_user_id = $1 and chat_id = $2",
+            *id as i64,
+            message.chat.id
+        )
+        .fetch_one(pool)
+        .await?;
 
         let task = sqlx::query_as!(
             Task,
@@ -188,7 +191,7 @@ async fn get_task_list_string(message: &Message, pool: &Pool<Postgres>) -> Resul
     .fetch_all(pool)
     .await?;
 
-    let mut text = "List of all tasks:\n".to_string();
+    let mut text = "List of all todos:\n".to_string();
     let mut n = 1;
     for task in &tasks {
         let checkbox = if task.done_by.is_some() { "✅" } else { "☑️" };
@@ -214,7 +217,7 @@ async fn get_task_list_string(message: &Message, pool: &Pool<Postgres>) -> Resul
 
 pub async fn get_todos(chat_id: i64, pool: &Pool<Postgres>) -> Result<String, LeditError> {
     // get all tasks that are scheduled for today or earlier
-    let tasks_by_username = sqlx::query!(
+    let mut tasks_by_username = sqlx::query!(
         r#"
             select 
                 t.id,
@@ -240,7 +243,12 @@ pub async fn get_todos(chat_id: i64, pool: &Pool<Postgres>) -> Result<String, Le
     .fetch_all(pool)
     .await?
     .into_iter()
-    .into_group_map_by(|v| v.username.clone());
+    .into_group_map_by(|v| v.username.clone())
+    .into_iter()
+    .map(|(k, v)| (k, v))
+    .collect::<Vec<(String, _)>>();
+
+    tasks_by_username.sort_by(|(a, _), (b, _)| a.partial_cmp(b).unwrap());
 
     // compose response message
     let text = if tasks_by_username.is_empty() {
@@ -263,7 +271,11 @@ pub async fn get_todos(chat_id: i64, pool: &Pool<Postgres>) -> Result<String, Le
                         } else {
                             "☑️"
                         };
-                        let delay = if task.scheduled_for < today() { "⏳" } else { "" };
+                        let delay = if task.scheduled_for < today() && task.done_by.is_none() {
+                            "⏳"
+                        } else {
+                            ""
+                        };
 
                         r.push_str(&format!("\n{}{} {}", checkbox, delay, task.description));
                     }
