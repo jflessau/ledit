@@ -11,7 +11,7 @@ pub struct ChatMember {
     pub telegram_user_id: i64,
     pub chat_id: i64,
     pub username: String,
-    pub task_weight: i64,
+    pub todo_weight: i64,
 }
 
 pub async fn register_chat_member(message: &Message, pool: &Pool<Postgres>) -> Result<(), LeditError> {

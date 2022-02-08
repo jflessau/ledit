@@ -1,4 +1,6 @@
 /help - this message
-/add <your task> - add task
-/add every 2 days: <your task> - add recurring task
-/todos - list all tasks
+/add <your todo> - add todo
+/add every 2 days: <your todo> - add recurring todo
+/todos - get a numbered list of todos
+/check <num> - (un-)check todo (e.g. /check 2)
+/delete <num> - delete todo (e.g. /delete 4)

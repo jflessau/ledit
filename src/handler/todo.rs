@@ -10,7 +10,7 @@ use sqlx::{FromRow, Pool, Postgres};
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, FromRow)]
-pub struct Task {
+pub struct Todo {
     pub id: Uuid,
     pub chat_id: i64,
     pub description: String,
@@ -20,7 +20,7 @@ pub struct Task {
     pub scheduled_for: NaiveDate,
     pub done_by: Option<Uuid>,
 }
-pub async fn handle_add_task(
+pub async fn handle_add_todo(
     title: String,
     mut interval_days: Option<i64>,
     message: &Message,
@@ -34,10 +34,10 @@ pub async fn handle_add_task(
 
     let assigned_user = get_random_chat_member(message.chat.id, pool).await?;
 
-    let task = sqlx::query_as!(
-        Task,
+    let todo = sqlx::query_as!(
+        Todo,
         r#"
-            insert into tasks (
+            insert into todos (
                 id,
                 chat_id,
                 description,
@@ -60,14 +60,14 @@ pub async fn handle_add_task(
 
     let send_message_params = SendMessageParamsBuilder::default()
         .chat_id(message.chat.id)
-        .text(format!("New task added:\n\n{}", task.description))
+        .text(format!("Added: {}", todo.description))
         .build()?;
 
     Ok(send_message_params)
 }
 
 pub async fn handle_list_todos(message: &Message, pool: &Pool<Postgres>) -> Result<SendMessageParams, LeditError> {
-    let mut text = get_task_list_string(message, pool).await?;
+    let mut text = get_todo_list_string(message, pool).await?;
 
     text.push_str("\n\n\n");
     text.push_str(&get_todos(message.chat.id, pool).await?);
@@ -80,32 +80,32 @@ pub async fn handle_list_todos(message: &Message, pool: &Pool<Postgres>) -> Resu
     Ok(send_message_params)
 }
 
-pub async fn handle_delete_task(
+pub async fn handle_delete_todo(
     num: i64,
     message: &Message,
     pool: &Pool<Postgres>,
 ) -> Result<SendMessageParams, LeditError> {
-    let task_to_delete = sqlx::query_as!(
-        Task,
-        "select * from tasks where chat_id = $1 order by description asc offset $2",
+    let todo_to_delete = sqlx::query_as!(
+        Todo,
+        "select * from todos where chat_id = $1 order by description asc offset $2",
         message.chat.id,
         num - 1
     )
     .fetch_optional(pool)
     .await?;
 
-    if let Some(task_to_delete) = task_to_delete {
+    if let Some(todo_to_delete) = todo_to_delete {
         sqlx::query!(
             r#"
-                delete from tasks where id = $1
+                delete from todos where id = $1
             "#,
-            task_to_delete.id
+            todo_to_delete.id
         )
         .execute(pool)
         .await?;
 
-        let mut text = format!("Deleted this task:\n\n{}\n\n", task_to_delete.description);
-        text.push_str(&get_task_list_string(message, pool).await?);
+        let mut text = format!("Deleted: {}\n\n", todo_to_delete.description);
+        text.push_str(&get_todo_list_string(message, pool).await?);
 
         let send_message_params = SendMessageParamsBuilder::default()
             .chat_id(message.chat.id)
@@ -116,14 +116,14 @@ pub async fn handle_delete_task(
     } else {
         let send_message_params = SendMessageParamsBuilder::default()
             .chat_id(message.chat.id)
-            .text("Task not found.")
+            .text("Todo not found.")
             .build()?;
 
         Ok(send_message_params)
     }
 }
 
-pub async fn handle_check_task(
+pub async fn handle_check_todo(
     num: i64,
     message: &Message,
     pool: &Pool<Postgres>,
@@ -137,25 +137,25 @@ pub async fn handle_check_task(
         .fetch_one(pool)
         .await?;
 
-        let task = sqlx::query_as!(
-            Task,
-            "select * from tasks where chat_id = $1 order by description asc offset $2",
+        let todo = sqlx::query_as!(
+            Todo,
+            "select * from todos where chat_id = $1 order by description asc offset $2",
             message.chat.id,
             num - 1
         )
         .fetch_optional(pool)
         .await?;
 
-        if let Some(mut task) = task {
-            task.done_by = if task.done_by.is_some() { None } else { Some(user.id) };
-            sqlx::query!(r#"update tasks set done_by = $1 where id = $2"#, task.done_by, task.id)
+        if let Some(mut todo) = todo {
+            todo.done_by = if todo.done_by.is_some() { None } else { Some(user.id) };
+            sqlx::query!(r#"update todos set done_by = $1 where id = $2"#, todo.done_by, todo.id)
                 .execute(pool)
                 .await?;
 
             let text = format!(
-                "Set task to {}:\n{}",
-                if task.done_by.is_some() { "done" } else { "not done" },
-                task.description
+                "{} {}",
+                if todo.done_by.is_some() { "✅" } else { "☑️" },
+                todo.description
             );
 
             let send_message_params = SendMessageParamsBuilder::default()
@@ -167,7 +167,7 @@ pub async fn handle_check_task(
         } else {
             let send_message_params = SendMessageParamsBuilder::default()
                 .chat_id(message.chat.id)
-                .text("Task not found.")
+                .text("Todo not found.")
                 .build()?;
 
             Ok(send_message_params)
@@ -182,10 +182,10 @@ pub async fn handle_check_task(
     }
 }
 
-async fn get_task_list_string(message: &Message, pool: &Pool<Postgres>) -> Result<String, LeditError> {
-    let tasks = sqlx::query_as!(
-        Task,
-        "select * from tasks where chat_id = $1 order by description asc",
+async fn get_todo_list_string(message: &Message, pool: &Pool<Postgres>) -> Result<String, LeditError> {
+    let todos = sqlx::query_as!(
+        Todo,
+        "select * from todos where chat_id = $1 order by description asc",
         message.chat.id,
     )
     .fetch_all(pool)
@@ -193,9 +193,9 @@ async fn get_task_list_string(message: &Message, pool: &Pool<Postgres>) -> Resul
 
     let mut text = "List of all todos:\n".to_string();
     let mut n = 1;
-    for task in &tasks {
-        let checkbox = if task.done_by.is_some() { "✅" } else { "☑️" };
-        let recurring = if let Some(interval_days) = task.interval_days {
+    for todo in &todos {
+        let checkbox = if todo.done_by.is_some() { "✅" } else { "☑️" };
+        let recurring = if let Some(interval_days) = todo.interval_days {
             format!(
                 "(every {} day{})",
                 interval_days,
@@ -204,20 +204,20 @@ async fn get_task_list_string(message: &Message, pool: &Pool<Postgres>) -> Resul
         } else {
             "".to_string()
         };
-        text.push_str(&format!("\n {}. {} {} {}", n, checkbox, task.description, recurring));
+        text.push_str(&format!("\n {}. {} {} {}", n, checkbox, todo.description, recurring));
         n += 1;
     }
 
-    if tasks.is_empty() {
-        text = "No task found.".to_string();
+    if todos.is_empty() {
+        text = "No todo found.".to_string();
     }
 
     Ok(text)
 }
 
 pub async fn get_todos(chat_id: i64, pool: &Pool<Postgres>) -> Result<String, LeditError> {
-    // get all tasks that are scheduled for today or earlier
-    let mut tasks_by_username = sqlx::query!(
+    // get all todos that are scheduled for today or earlier
+    let mut todos_by_username = sqlx::query!(
         r#"
             select 
                 t.id,
@@ -229,7 +229,7 @@ pub async fn get_todos(chat_id: i64, pool: &Pool<Postgres>) -> Result<String, Le
                 t.done_by,
 
                 c.username
-            from tasks as t
+            from todos as t
             join chat_members as c on c.id = t.assigned_user
             where 
                 t.chat_id = $1
@@ -248,22 +248,22 @@ pub async fn get_todos(chat_id: i64, pool: &Pool<Postgres>) -> Result<String, Le
     .map(|(k, v)| (k, v))
     .collect::<Vec<(String, _)>>();
 
-    tasks_by_username.sort_by(|(a, _), (b, _)| a.partial_cmp(b).unwrap());
+    todos_by_username.sort_by(|(a, _), (b, _)| b.partial_cmp(a).unwrap());
 
     // compose response message
-    let text = if tasks_by_username.is_empty() {
+    let text = if todos_by_username.is_empty() {
         "No todos for today :)".to_string()
     } else {
-        tasks_by_username
+        todos_by_username
             .into_iter()
-            .map(|(username, tasks)| {
+            .map(|(username, todos)| {
                 let mut r: String = format!("Todos for {}:\n", username);
-                if tasks.is_empty() {
+                if todos.is_empty() {
                     r.push_str("\nNo todos for today :)")
                 } else {
-                    for task in tasks {
-                        let checkbox = if let Some(done_by) = task.done_by {
-                            if done_by == task.assigned_user {
+                    for todo in todos {
+                        let checkbox = if let Some(done_by) = todo.done_by {
+                            if done_by == todo.assigned_user {
                                 "✅"
                             } else {
                                 "✅↪️"
@@ -271,13 +271,13 @@ pub async fn get_todos(chat_id: i64, pool: &Pool<Postgres>) -> Result<String, Le
                         } else {
                             "☑️"
                         };
-                        let delay = if task.scheduled_for < today() && task.done_by.is_none() {
+                        let delay = if todo.scheduled_for < today() && todo.done_by.is_none() {
                             "⏳"
                         } else {
                             ""
                         };
 
-                        r.push_str(&format!("\n{}{} {}", checkbox, delay, task.description));
+                        r.push_str(&format!("\n{}{} {}", checkbox, delay, todo.description));
                     }
                 }
                 r

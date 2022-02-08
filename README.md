@@ -1,3 +1,3 @@
 # ledit - lets do it together
 
-Telegram bot for fair task distribution.
+Telegram bot for a fair distribution of todos.

@@ -1,32 +1,37 @@
 use crate::{
     error,
-    handler::{chat_member::get_random_chat_member, task::Task},
+    handler::{chat_member::get_random_chat_member, todo::Todo},
     util,
 };
 use sqlx::{Pool, Postgres};
 use tokio::time::{sleep, Duration};
 
-pub async fn re_schedule_tasks() -> Result<(), error::LeditError> {
+pub async fn interval_actions() -> Result<(), error::LeditError> {
     let (pool, _) = util::get_pool_and_api().await;
 
     loop {
-        sleep(Duration::from_millis(100000)).await;
-        tracing::info!("re-scheduling todos");
+        sleep(Duration::from_millis(1000)).await;
 
-        match re_schedule_and_delete_todos(&pool).await {
+        match re_schedule_todos(&pool).await {
             Ok(_) => tracing::info!("re-scheduling todos done"),
             Err(err) => tracing::error!("re-scheduling todos failed, error: {}", err),
+        }
+
+        match delete_one_time_todos(&pool).await {
+            Ok(_) => tracing::info!("delete one-time todos done"),
+            Err(err) => tracing::error!("delete one-time todos failed, error: {}", err),
         }
     }
 }
 
-async fn re_schedule_and_delete_todos(pool: &Pool<Postgres>) -> Result<(), error::LeditError> {
-    // re-schedule tasks
-    let tasks_to_re_schedule = sqlx::query_as!(
-        Task,
+async fn re_schedule_todos(pool: &Pool<Postgres>) -> Result<(), error::LeditError> {
+    tracing::info!("re-schedule todos");
+
+    let todos_to_re_schedule = sqlx::query_as!(
+        Todo,
         r#"
             select *
-            from tasks
+            from todos
             where 
                 interval_days is not null
                 and done_by is not null
@@ -36,15 +41,15 @@ async fn re_schedule_and_delete_todos(pool: &Pool<Postgres>) -> Result<(), error
     .fetch_all(pool)
     .await?;
 
-    if !tasks_to_re_schedule.is_empty() {
-        println!("reschedule {:#?}", tasks_to_re_schedule);
+    if !todos_to_re_schedule.is_empty() {
+        tracing::info!("amount of todos to re-schedule {:#?}", todos_to_re_schedule.len());
     }
 
-    for task in tasks_to_re_schedule {
-        let assigned_user = get_random_chat_member(task.chat_id, pool).await?;
+    for todo in todos_to_re_schedule {
+        let assigned_user = get_random_chat_member(todo.chat_id, pool).await?;
         sqlx::query!(
             r#"
-                update tasks
+                update todos
                 set
                     done_by = null,
                     scheduled_for = now(),
@@ -52,18 +57,23 @@ async fn re_schedule_and_delete_todos(pool: &Pool<Postgres>) -> Result<(), error
                 where 
                     id = $1
             "#,
-            task.id,
+            todo.id,
             assigned_user
         )
         .execute(pool)
         .await?;
     }
 
-    // delete one-time tasks that are done
+    Ok(())
+}
+
+async fn delete_one_time_todos(pool: &Pool<Postgres>) -> Result<(), error::LeditError> {
+    tracing::info!("delete one-time todos");
+
     sqlx::query!(
         r#"
             delete from 
-                tasks 
+                todos 
             where 
                 done_by is not null 
                 and interval_days is null 

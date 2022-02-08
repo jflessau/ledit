@@ -1,12 +1,11 @@
 {
   "db": "PostgreSQL",
-  "06f4a1c11f5768e8fdf22b08a9e05de47ea5b3e47666fd05422e6e1cf4bad557": {
-    "query": "update tasks set done_by = $1 where id = $2",
+  "0394fa05e55d7c37da7c6d4e9cee3581948a19ff1d3cf04b6997cb921e7e7291": {
+    "query": "\n                delete from todos where id = $1\n            ",
     "describe": {
       "columns": [],
       "parameters": {
         "Left": [
-          "Uuid",
           "Uuid"
         ]
       },
@@ -39,7 +38,7 @@
         },
         {
           "ordinal": 4,
-          "name": "task_weight",
+          "name": "todo_weight",
           "type_info": "Int8"
         }
       ],
@@ -58,8 +57,8 @@
       ]
     }
   },
-  "1977caf4034f28690081084385bf2125270237679e334b23a957108dfb137db4": {
-    "query": "select * from tasks where chat_id = $1 order by description asc",
+  "29667626004255d26f01667b66b5556c4c73f3f0bdb1cac11a952bd0837d0a00": {
+    "query": "\n            select *\n            from todos\n            where \n                interval_days is not null\n                and done_by is not null\n                and scheduled_for < now() - interval '1 days' * interval_days\n        ",
     "describe": {
       "columns": [
         {
@@ -99,9 +98,7 @@
         }
       ],
       "parameters": {
-        "Left": [
-          "Int8"
-        ]
+        "Left": []
       },
       "nullable": [
         false,
@@ -114,8 +111,8 @@
       ]
     }
   },
-  "2cb921b79f18fc1bf4df1712ce7aacf3ee1df9ed3f99cdffd92188d0d2bfb4db": {
-    "query": "\n            insert into tasks (\n                id,\n                chat_id,\n                description,\n                \n                interval_days,\n                assigned_user\n\n            )\n            values ( $1, $2, $3, $4, $5 )\n            RETURNING *\n        ",
+  "3e3c098a2f208538a2ebbabba50ddd6e1aeac1cb527b9cbc056af9e8b5032cdd": {
+    "query": "\n            insert into todos (\n                id,\n                chat_id,\n                description,\n                \n                interval_days,\n                assigned_user\n\n            )\n            values ( $1, $2, $3, $4, $5 )\n            RETURNING *\n        ",
     "describe": {
       "columns": [
         {
@@ -174,8 +171,18 @@
       ]
     }
   },
-  "509c9865283e671ef3249440da572d9da42779b76c05f78c3d19ae4ea774bfd7": {
-    "query": "\n            select \n                t.id,\n                t.chat_id,\n                t.description,\n                t.interval_days,\n                t.assigned_user,\n                t.scheduled_for,\n                t.done_by,\n\n                c.username\n            from tasks as t\n            join chat_members as c on c.id = t.assigned_user\n            where \n                t.chat_id = $1\n                and t.scheduled_for <= $2\n                and c.chat_id = $1\n            order by t.done_by desc, t.description asc\n        ",
+  "48b3243387a9c0870cd674eda8c17d7bbc7558c96a18f83cd0d7d2fb1bcc497a": {
+    "query": "\n            delete from \n                todos \n            where \n                done_by is not null \n                and interval_days is null \n                and scheduled_for < now() - interval '1 day'\n        ",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": []
+      },
+      "nullable": []
+    }
+  },
+  "54d3d08c43c4f814a7054173e58466fb45a2e53228ffa96df7b258ad8577e142": {
+    "query": "\n            select \n                t.id,\n                t.chat_id,\n                t.description,\n                t.interval_days,\n                t.assigned_user,\n                t.scheduled_for,\n                t.done_by,\n\n                c.username\n            from todos as t\n            join chat_members as c on c.id = t.assigned_user\n            where \n                t.chat_id = $1\n                and t.scheduled_for <= $2\n                and c.chat_id = $1\n            order by t.done_by desc, t.description asc\n        ",
     "describe": {
       "columns": [
         {
@@ -237,19 +244,6 @@
       ]
     }
   },
-  "5430c371b8521d1c6b98bd2f38656645ca299889ccd4760ef8664ae5c66e8505": {
-    "query": "\n                update tasks\n                set\n                    done_by = null,\n                    scheduled_for = now(),\n                    assigned_user = $2\n                where \n                    id = $1\n            ",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Uuid"
-        ]
-      },
-      "nullable": []
-    }
-  },
   "6b722ea4243e7294f5334562c12780d1a0ca88e79b158ce2dbe4d4f1329172da": {
     "query": "select id from chat_members where chat_id = $1",
     "describe": {
@@ -270,72 +264,8 @@
       ]
     }
   },
-  "70af54bf8878d5860379f5729e55db3355a802118f594d170baea7f342f0b739": {
-    "query": "\n            delete from \n                tasks \n            where \n                done_by is not null \n                and interval_days is null \n                and scheduled_for < now() - interval '1 day'\n        ",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Left": []
-      },
-      "nullable": []
-    }
-  },
-  "90dc9bed784b8d4e028b8b2252819ce23779067c6f8fee2f8c8cb8cc886ba0a9": {
-    "query": "\n            select *\n            from tasks\n            where \n                interval_days is not null\n                and done_by is not null\n                and scheduled_for < now() - interval '1 days' * interval_days\n        ",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "id",
-          "type_info": "Uuid"
-        },
-        {
-          "ordinal": 1,
-          "name": "chat_id",
-          "type_info": "Int8"
-        },
-        {
-          "ordinal": 2,
-          "name": "description",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 3,
-          "name": "interval_days",
-          "type_info": "Int8"
-        },
-        {
-          "ordinal": 4,
-          "name": "assigned_user",
-          "type_info": "Uuid"
-        },
-        {
-          "ordinal": 5,
-          "name": "scheduled_for",
-          "type_info": "Date"
-        },
-        {
-          "ordinal": 6,
-          "name": "done_by",
-          "type_info": "Uuid"
-        }
-      ],
-      "parameters": {
-        "Left": []
-      },
-      "nullable": [
-        false,
-        false,
-        false,
-        true,
-        false,
-        false,
-        true
-      ]
-    }
-  },
-  "958f7b3ab1edc82f348341e4f10a3a9ffe4f245cb18367a4c5ce8545b0524b61": {
-    "query": "select * from tasks where chat_id = $1 order by description asc offset $2",
+  "9ba76b02864c53b27c8d25aca88117f0c1271f44dc7c006fe3c77689f5beb7cb": {
+    "query": "select * from todos where chat_id = $1 order by description asc offset $2",
     "describe": {
       "columns": [
         {
@@ -389,6 +319,19 @@
         false,
         true
       ]
+    }
+  },
+  "9ecba99a4ee487643c2df58bebf8bb0e987fdb584c74ce095acb1ae3892946c3": {
+    "query": "\n                update todos\n                set\n                    done_by = null,\n                    scheduled_for = now(),\n                    assigned_user = $2\n                where \n                    id = $1\n            ",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid"
+        ]
+      },
+      "nullable": []
     }
   },
   "a726cd96536ba35f61c351a71cf08e3639616b98b35740fbbb18f39180e00a15": {
@@ -427,12 +370,69 @@
       ]
     }
   },
-  "c54895dc86771b8c8c6d6f2ae00c62a7173654c95d6596b760ae11ab95fdfcff": {
-    "query": "\n                delete from tasks where id = $1\n            ",
+  "b251df68dc2200b9f633170e96d3668a9be112ceee74543644ff4a37a8c37657": {
+    "query": "select * from todos where chat_id = $1 order by description asc",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "chat_id",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 2,
+          "name": "description",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "interval_days",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 4,
+          "name": "assigned_user",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 5,
+          "name": "scheduled_for",
+          "type_info": "Date"
+        },
+        {
+          "ordinal": 6,
+          "name": "done_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        true
+      ]
+    }
+  },
+  "fa769650fe151ccc9f806f2cee9936e1096ff2f89c857d7891d105b3c111c343": {
+    "query": "update todos set done_by = $1 where id = $2",
     "describe": {
       "columns": [],
       "parameters": {
         "Left": [
+          "Uuid",
           "Uuid"
         ]
       },

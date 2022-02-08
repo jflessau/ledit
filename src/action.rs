@@ -2,7 +2,7 @@ use crate::{
     error::LeditError,
     handler::{
         info::{handle_help, handle_start},
-        task::{handle_add_task, handle_check_task, handle_delete_task, handle_list_todos},
+        todo::{handle_add_todo, handle_check_todo, handle_delete_todo, handle_list_todos},
     },
 };
 use frankenstein::{Message, SendMessageParams};
@@ -15,17 +15,17 @@ pub enum Action<'a> {
     UnknownMessage,
     Start(&'a Message),
     Help(&'a Message),
-    AddTask {
+    AddTodo {
         title: String,
         interval_days: Option<i64>,
         message: &'a Message,
     },
     ListTodos(&'a Message),
-    DeleteTask {
+    DeleteTodo {
         num: i64,
         message: &'a Message,
     },
-    CheckTask {
+    CheckTodo {
         num: i64,
         message: &'a Message,
     },
@@ -37,12 +37,12 @@ impl fmt::Display for Action<'_> {
             Action::UnknownMessage => "UnknownMessage".to_string(),
             Action::Start(_) => "Start".to_string(),
             Action::Help(_) => "Help".to_string(),
-            Action::AddTask {
+            Action::AddTodo {
                 title, interval_days, ..
-            } => format!("AddTask {{ title: {}, interval_days: {:?} }}", title, interval_days),
+            } => format!("AddTodo {{ title: {}, interval_days: {:?} }}", title, interval_days),
             Action::ListTodos(_) => "ListTodos".to_string(),
-            Action::DeleteTask { num, .. } => format!("DeleteTask {{ num: {} }}", num),
-            Action::CheckTask { num, .. } => format!("CheckTask: {{ num: {} }}", num),
+            Action::DeleteTodo { num, .. } => format!("DeleteTodo {{ num: {} }}", num),
+            Action::CheckTodo { num, .. } => format!("CheckTodo: {{ num: {} }}", num),
         };
 
         write!(f, "{}", text)
@@ -65,35 +65,35 @@ impl<'a> Action<'a> {
             return Action::Help(message);
         }
 
-        // add recurring task
-        let add_task_re = Regex::new(
+        // add recurring todo
+        let add_todo_re = Regex::new(
             r"\A((?i)/add(?-i))[ ]+((?i)every(?i))[ ]+([0-9]+)[ ]+((?i)day(?i))(s){0,1}:[ ]+([a-zA-Z0-9\-_:,. ].{0,42})",
         )
-        .expect("add_recurring_task_re construction failed");
-        if let Some(caps) = add_task_re.captures(&s) {
+        .expect("add_recurring_todo_re construction failed");
+        if let Some(caps) = add_todo_re.captures(&s) {
             let interval_str: String = caps
                 .get(3)
-                .expect("recurring_task_interval_re caps failed")
+                .expect("recurring_todo_interval_re caps failed")
                 .as_str()
                 .to_string();
             let title: String = caps
                 .get(6)
-                .expect("recurring_task_title_re caps failed")
+                .expect("recurring_todo_title_re caps failed")
                 .as_str()
                 .to_string();
-            return Action::AddTask {
+            return Action::AddTodo {
                 title,
                 interval_days: interval_str.parse::<i64>().ok(),
                 message,
             };
         }
 
-        // add one-time task
-        let add_task_re = Regex::new(r"\A((?i)/add(?-i)([ ]+)([a-zA-Z0-9\-_:,. ].{0,42}))")
-            .expect("add_one_time_task_re construction failed");
-        if let Some(caps) = add_task_re.captures(&s) {
+        // add one-time todo
+        let add_todo_re = Regex::new(r"\A((?i)/add(?-i)([ ]+)([a-zA-Z0-9\-_:,. ].{0,42}))")
+            .expect("add_one_time_todo_re construction failed");
+        if let Some(caps) = add_todo_re.captures(&s) {
             let title: String = caps.get(3).expect("add_re caps failed").as_str().to_string();
-            return Action::AddTask {
+            return Action::AddTodo {
                 title,
                 interval_days: None,
                 message,
@@ -101,23 +101,23 @@ impl<'a> Action<'a> {
         }
 
         // list todos
-        let list_tasks_re = Regex::new(r"\A((?i)/todos(?-i))").expect("list_todos_re construction failed");
-        if list_tasks_re.captures(&s).is_some() {
+        let list_todos_re = Regex::new(r"\A((?i)/todos(?-i))").expect("list_todos_re construction failed");
+        if list_todos_re.captures(&s).is_some() {
             return Action::ListTodos(message);
         }
 
-        // delete task
-        let delete_task_re = Regex::new(r"((?i)/delete(?-i))[ ]+([0-9]+)").expect("building delete_task_re failed");
-        if let Some(caps) = delete_task_re.captures(&s) {
+        // delete todo
+        let delete_todo_re = Regex::new(r"((?i)/delete(?-i))[ ]+([0-9]+)").expect("building delete_todo_re failed");
+        if let Some(caps) = delete_todo_re.captures(&s) {
             let num = caps.get(2).expect("caps get 2 failed").as_str().parse().unwrap_or(1);
-            return Action::DeleteTask { num, message };
+            return Action::DeleteTodo { num, message };
         }
 
-        // check task
-        let check_task_re = Regex::new(r"((?i)/check(?-i))[ ]+([0-9]+)").expect("building check_task_re failed");
-        if let Some(caps) = check_task_re.captures(&s) {
+        // check todo
+        let check_todo_re = Regex::new(r"((?i)/check(?-i))[ ]+([0-9]+)").expect("building check_todo_re failed");
+        if let Some(caps) = check_todo_re.captures(&s) {
             let num = caps.get(2).expect("caps get 2 failed").as_str().parse().unwrap_or(1);
-            return Action::CheckTask { num, message };
+            return Action::CheckTodo { num, message };
         }
 
         // unknown
@@ -129,14 +129,14 @@ impl<'a> Action<'a> {
         let res = match self {
             Action::Help(message) => Some(handle_help(message)?),
             Action::Start(message) => Some(handle_start(message)?),
-            Action::AddTask {
+            Action::AddTodo {
                 title,
                 interval_days,
                 message,
-            } => Some(handle_add_task(title, interval_days, message, pool).await?),
+            } => Some(handle_add_todo(title, interval_days, message, pool).await?),
             Action::ListTodos(message) => Some(handle_list_todos(message, pool).await?),
-            Action::DeleteTask { num, message } => Some(handle_delete_task(num, message, pool).await?),
-            Action::CheckTask { num, message } => Some(handle_check_task(num, message, pool).await?),
+            Action::DeleteTodo { num, message } => Some(handle_delete_todo(num, message, pool).await?),
+            Action::CheckTodo { num, message } => Some(handle_check_todo(num, message, pool).await?),
             Action::UnknownMessage => None,
         };
 

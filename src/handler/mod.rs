@@ -6,7 +6,7 @@ use frankenstein::{
 
 pub mod chat_member;
 pub mod info;
-pub mod task;
+pub mod todo;
 
 pub fn _simple_inline_keyboard(button_data: Vec<(String, String)>) -> ReplyMarkup {
     let buttons = button_data

@@ -11,7 +11,7 @@ mod interval;
 mod util;
 use action::Action;
 use handler::chat_member::register_chat_member;
-use interval::re_schedule_tasks;
+use interval::interval_actions;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -25,8 +25,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // starting two threads, one for processign telegram api updates and one for time based db interactions
     tracing::info!("starting bot...");
     let listen_for_updates_thread = tokio::task::spawn(listen_for_updates());
-    let re_schedule_tasks_thread = tokio::task::spawn(re_schedule_tasks());
-    let (_, _) = (listen_for_updates_thread.await?, re_schedule_tasks_thread.await?);
+    let re_schedule_todos_thread = tokio::task::spawn(interval_actions());
+    let (_, _) = (listen_for_updates_thread.await?, re_schedule_todos_thread.await?);
 
     Ok(())
 }
