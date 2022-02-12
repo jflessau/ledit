@@ -171,16 +171,6 @@
       ]
     }
   },
-  "48b3243387a9c0870cd674eda8c17d7bbc7558c96a18f83cd0d7d2fb1bcc497a": {
-    "query": "\n            delete from \n                todos \n            where \n                done_by is not null \n                and interval_days is null \n                and scheduled_for < now() - interval '1 day'\n        ",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Left": []
-      },
-      "nullable": []
-    }
-  },
   "54d3d08c43c4f814a7054173e58466fb45a2e53228ffa96df7b258ad8577e142": {
     "query": "\n            select \n                t.id,\n                t.chat_id,\n                t.description,\n                t.interval_days,\n                t.assigned_user,\n                t.scheduled_for,\n                t.done_by,\n\n                c.username\n            from todos as t\n            join chat_members as c on c.id = t.assigned_user\n            where \n                t.chat_id = $1\n                and t.scheduled_for <= $2\n                and c.chat_id = $1\n            order by t.done_by desc, t.description asc\n        ",
     "describe": {
@@ -261,6 +251,72 @@
       },
       "nullable": [
         false
+      ]
+    }
+  },
+  "716835b5e56dba8df6a2c67fb66a7db751252a36b0a563e0455e1d509dd4e376": {
+    "query": "\n                delete from \n                    todos \n                where \n                    id = $1\n            ",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "90ac7524b998546e8d9434e1a510452a27c953cb5dffe2f9d1ad44797eba4f53": {
+    "query": "\n            select * from \n                todos \n            where \n                done_by is not null \n                and interval_days is null \n                and scheduled_for < now() - interval '1 day'\n        ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "chat_id",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 2,
+          "name": "description",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "interval_days",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 4,
+          "name": "assigned_user",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 5,
+          "name": "scheduled_for",
+          "type_info": "Date"
+        },
+        {
+          "ordinal": 6,
+          "name": "done_by",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": []
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        true
       ]
     }
   },
