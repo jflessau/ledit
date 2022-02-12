@@ -19,7 +19,7 @@ jobs:
           with:
             to: ${{ secrets.TELEGRAM_TO }}
             token: ${{ secrets.TELEGRAM_TOKEN }}
-            args: 📍🔨 GitHub actions started CI jobs for ledit.
+            args: 💬🔨 GitHub actions started CI jobs for ledit.
 
   check_formatting:
     name: "Check Formatting"
