@@ -3,24 +3,22 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum LeditError {
-    #[error("Send message error")]
-    SendMessage,
-    #[error("Database error")]
-    Database,
+    #[error("Frankenstein Error: {0}")]
+    SendMessageParamsBuilder(#[from] SendMessageParamsBuilderError),
+
+    #[error("Failed to find random user")]
+    Frankenstein(String),
+
+    #[error("Sqlx Error: {0}")]
+    Sqlx(#[from] sqlx::Error),
+
+    #[error("SQLx Migrate Error: {0}")]
+    SqlxMigrate(#[from] sqlx::migrate::MigrateError),
+
     #[error("Failed to find random user")]
     RndUser,
-    // #[error("Unknown error")]
-    // Unknown,
 }
 
-impl From<SendMessageParamsBuilderError> for LeditError {
-    fn from(_err: SendMessageParamsBuilderError) -> Self { LeditError::SendMessage }
-}
-
-impl From<sqlx::Error> for LeditError {
-    fn from(_err: sqlx::Error) -> Self { LeditError::Database }
-}
-
-impl From<sqlx::migrate::MigrateError> for LeditError {
-    fn from(_err: sqlx::migrate::MigrateError) -> Self { LeditError::Database }
+impl From<frankenstein::Error> for LeditError {
+    fn from(err: frankenstein::Error) -> Self { LeditError::Frankenstein(format!("{:?}", err)) }
 }

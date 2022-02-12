@@ -3,21 +3,35 @@ use crate::{
     handler::{chat_member::get_random_chat_member, todo::Todo},
     util,
 };
+use frankenstein::{Api, SendMessageParamsBuilder, TelegramApi};
 use sqlx::{Pool, Postgres};
+use std::env;
 use tokio::time::{sleep, Duration};
 
 pub async fn interval_actions() -> Result<(), error::LeditError> {
-    let (pool, _) = util::get_pool_and_api().await;
+    let (pool, api) = util::get_pool_and_api().await;
+    let sleep_duration = env::var("INTERVAL_MS")
+        .unwrap_or_else(|_| {
+            tracing::info!("env var `interval_MS` is not set, using default value 10000");
+            "10000".to_string()
+        })
+        .parse::<u64>()
+        .unwrap_or_else(|_| {
+            tracing::warn!("failed to parse value for env var `interval_MS`, using default value 10000");
+            10000
+        });
+
+    tracing::info!("interval sleep duration: {} ms", sleep_duration);
 
     loop {
-        sleep(Duration::from_millis(1000)).await;
+        sleep(Duration::from_millis(sleep_duration)).await;
 
         match re_schedule_todos(&pool).await {
             Ok(_) => tracing::info!("re-scheduling todos done"),
             Err(err) => tracing::error!("re-scheduling todos failed, error: {}", err),
         }
 
-        match delete_one_time_todos(&pool).await {
+        match delete_one_time_todos(&pool, &api).await {
             Ok(_) => tracing::info!("delete one-time todos done"),
             Err(err) => tracing::error!("delete one-time todos failed, error: {}", err),
         }
@@ -67,12 +81,13 @@ async fn re_schedule_todos(pool: &Pool<Postgres>) -> Result<(), error::LeditErro
     Ok(())
 }
 
-async fn delete_one_time_todos(pool: &Pool<Postgres>) -> Result<(), error::LeditError> {
+async fn delete_one_time_todos(pool: &Pool<Postgres>, api: &Api) -> Result<(), error::LeditError> {
     tracing::info!("delete one-time todos");
 
-    sqlx::query!(
+    let todos = sqlx::query_as!(
+        Todo,
         r#"
-            delete from 
+            select * from 
                 todos 
             where 
                 done_by is not null 
@@ -80,8 +95,29 @@ async fn delete_one_time_todos(pool: &Pool<Postgres>) -> Result<(), error::Ledit
                 and scheduled_for < now() - interval '1 day'
         "#
     )
-    .execute(pool)
+    .fetch_all(pool)
     .await?;
+
+    for todo in todos {
+        sqlx::query!(
+            r#"
+                delete from 
+                    todos 
+                where 
+                    id = $1
+            "#,
+            todo.id
+        )
+        .execute(pool)
+        .await?;
+
+        api.send_message(
+            &SendMessageParamsBuilder::default()
+                .chat_id(todo.chat_id)
+                .text(&format!("🗑 Deleting old & done todo: {}", todo.description))
+                .build()?,
+        )?;
+    }
 
     Ok(())
 }

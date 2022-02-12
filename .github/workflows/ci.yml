@@ -38,27 +38,27 @@ jobs:
         run: |
           cargo fmt --all -- --check
 
-  # clippy:
-  #   name: "Clippy"
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: checkout
-  #       uses: actions/checkout@master
-  #     - name: install rust
-  #       uses: actions-rs/toolchain@v1
-  #       with:
-  #         profile: minimal
-  #         toolchain: nightly
-  #         components: clippy
-  #         override: true
-  #     - name: cargo clippy
-  #       run: |
-  #         cargo clippy -- --D warnings
+  clippy:
+    name: "Clippy"
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@master
+      - name: install rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          components: clippy
+          override: true
+      - name: cargo clippy
+        run: |
+          cargo clippy -- --D warnings
 
   build_and_publish:
     name: Build and Publish
     if: github.ref == 'refs/heads/main'
-    needs: [check_formatting]
+    needs: [clippy, check_formatting]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

@@ -67,7 +67,7 @@ impl<'a> Action<'a> {
 
         // add recurring todo
         let add_todo_re = Regex::new(
-            r"\A((?i)/add(?-i))[ ]+((?i)every(?i))[ ]+([0-9]+)[ ]+((?i)day(?i))(s){0,1}:[ ]+([a-zA-Z0-9\-_:,. ].{0,42})",
+            r"\A((?i)/add(?-i))[ ]+((?i)every(?i))[ ]+([0-9]+)[ ]+((?i)day(?i))(s){0,1}:[ ]+([a-zA-Z0-9\-_:,. ].{0,64})",
         )
         .expect("add_recurring_todo_re construction failed");
         if let Some(caps) = add_todo_re.captures(&s) {
@@ -89,7 +89,7 @@ impl<'a> Action<'a> {
         }
 
         // add one-time todo
-        let add_todo_re = Regex::new(r"\A((?i)/add(?-i)([ ]+)([a-zA-Z0-9\-_:,. ].{0,42}))")
+        let add_todo_re = Regex::new(r"\A((?i)/add(?-i)([ ]+)([a-zA-Z0-9\-_:,. ].{0,64}))")
             .expect("add_one_time_todo_re construction failed");
         if let Some(caps) = add_todo_re.captures(&s) {
             let title: String = caps.get(3).expect("add_re caps failed").as_str().to_string();

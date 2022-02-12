@@ -196,11 +196,7 @@ async fn get_todo_list_string(message: &Message, pool: &Pool<Postgres>) -> Resul
     for todo in &todos {
         let checkbox = if todo.done_by.is_some() { "✅" } else { "☑️" };
         let recurring = if let Some(interval_days) = todo.interval_days {
-            format!(
-                "(every {} day{})",
-                interval_days,
-                if interval_days > 1 { "s" } else { "" }
-            )
+            format!("(🔄 {} day{})", interval_days, if interval_days > 1 { "s" } else { "" })
         } else {
             "".to_string()
         };
