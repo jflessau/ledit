@@ -2,7 +2,7 @@
 
 ![CI](https://github.com/jflessau/ledit/actions/workflows/ci.yml/badge.svg)
 
-Telegram bot for a fair assignment of todos.
+Telegram bot for fair task assignment.
 
 ## Features
 
@@ -42,15 +42,9 @@ Happy hacking 😊
 
 ## Build & run docker image
 
-Build the docker image with
+Build the docker image with `docker build -t ledit .` and run it with these env vars:
 
-```bash
-docker build -t ledit .
-```
-
-and run it with these env vars:
-
-| Env var        | Example value                               | Optional | Default |
-| -------------- | ------------------------------------------- | -------- | ------- |
-| `DATABASE_URL` | `postgres://dbuser:password@localhost:5432` | no       |         |
-| `TOKEN`        | `muchsecretwow123456789`                    | no       |         |
+| Env var        | Example value                               | Optional |
+| -------------- | ------------------------------------------- | -------- |
+| `DATABASE_URL` | `postgres://dbuser:password@localhost:5432` | no       |
+| `TOKEN`        | `muchsecretwow123456789`                    | no       |
