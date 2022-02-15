@@ -267,7 +267,6 @@ pub async fn get_todos(chat_id: i64, pool: &Pool<Postgres>) -> Result<String, Le
         todos_by_username
             .into_iter()
             .map(|(username, todos)| {
-
                 let mut r: String = format!("Todos for {}:\n", username);
                 if todos.is_empty() {
                     r.push_str("\nNo todos for today :)")
