@@ -1,12 +1,14 @@
-# ledit - Let's do it together
+# ledit
 
 ![CI](https://github.com/jflessau/ledit/actions/workflows/ci.yml/badge.svg)
 
 Telegram bot for fair task assignment.
 
+("ledit" = **le**t's **d**o **i**t **t**ogether)
+
 ## Features
 
-Add todos to todolists within telegram chats. Each todo is assigned to a random chat member.
+Add todos to todo-lists within telegram chats. Each todo is assigned to a random chat member.
 
 Your roommates adds a tedious todo? He may end up assigned to it himself. But the same thing could happen to you.
 This makes assignments fair.
@@ -17,13 +19,13 @@ Overdue todos are marked with a ⏳-emoji (see the screenshots below).
 
 ### Commands
 
-| Command                              | Description                                             |
-| ------------------------------------ | ------------------------------------------------------- |
-| `/add Clean Kitchen`                 | Add a todo                                              |
-| `/add every 20 days: Clean Mirrors ` | Add a recurring todo                                    |
-| `/todos`                             | Get a numbered list of todos                            |
-| `/check 1`                           | Mark todo #1 as done (or undo it if #1 is already done) |
-| `/delete 2`                          | Delete todo #2                                          |
+| Command                              | Description                  |
+| ------------------------------------ | ---------------------------- |
+| `/add Clean kitchen`                 | Add a todo                   |
+| `/add every 20 days: Clean mirrors ` | Add a recurring todo         |
+| `/todos`                             | Get a numbered list of todos |
+| `/check 1`                           | Mark todo #1 as done         |
+| `/delete 2`                          | Delete todo #2               |
 
 ### Screenshots
 

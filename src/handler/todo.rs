@@ -67,7 +67,7 @@ pub async fn handle_add_todo(
 }
 
 pub async fn handle_list_todos(message: &Message, pool: &Pool<Postgres>) -> Result<SendMessageParams, LeditError> {
-    let mut text = get_todo_list_string(message, pool).await?;
+    let mut text = get_all_todos_as_msg_string(message, pool).await?;
 
     text.push_str("\n\n\n");
     text.push_str(&get_todos(message.chat.id, pool).await?);
@@ -105,7 +105,7 @@ pub async fn handle_delete_todo(
         .await?;
 
         let mut text = format!("Deleted: {}\n\n", todo_to_delete.description);
-        text.push_str(&get_todo_list_string(message, pool).await?);
+        text.push_str(&get_all_todos_as_msg_string(message, pool).await?);
 
         let send_message_params = SendMessageParamsBuilder::default()
             .chat_id(message.chat.id)
@@ -182,7 +182,7 @@ pub async fn handle_check_todo(
     }
 }
 
-async fn get_todo_list_string(message: &Message, pool: &Pool<Postgres>) -> Result<String, LeditError> {
+async fn get_all_todos_as_msg_string(message: &Message, pool: &Pool<Postgres>) -> Result<String, LeditError> {
     let todos = sqlx::query_as!(
         Todo,
         "select * from todos where chat_id = $1 order by description asc",
@@ -194,7 +194,11 @@ async fn get_todo_list_string(message: &Message, pool: &Pool<Postgres>) -> Resul
     let mut text = "List of all todos:\n".to_string();
     let mut n = 1;
     for todo in &todos {
-        let checkbox = if todo.done_by.is_some() { "✅" } else { "☑️" };
+        let checkbox = if todo.done_by.is_some() {
+            if todo.scheduled_for == today() { "✅" } else { "🗓" }
+        } else {
+            "☑️"
+        };
         let recurring = if let Some(interval_days) = todo.interval_days {
             format!("(🔄 {} day{})", interval_days, if interval_days > 1 { "s" } else { "" })
         } else {
@@ -229,8 +233,18 @@ pub async fn get_todos(chat_id: i64, pool: &Pool<Postgres>) -> Result<String, Le
             join chat_members as c on c.id = t.assigned_user
             where 
                 t.chat_id = $1
-                and t.scheduled_for <= $2
                 and c.chat_id = $1
+                and 
+                    (
+                        (t.interval_days is null and t.scheduled_for <= $2)
+                        or 
+                        (   
+                            t.interval_days is not null
+                            and (
+                                (t.scheduled_for <= $2 and t.done_by is null) 
+                                or (t.scheduled_for = $2 and t.done_by is not null))
+                        )
+                    )
             order by t.done_by desc, t.description asc
         "#,
         chat_id,
@@ -253,6 +267,7 @@ pub async fn get_todos(chat_id: i64, pool: &Pool<Postgres>) -> Result<String, Le
         todos_by_username
             .into_iter()
             .map(|(username, todos)| {
+
                 let mut r: String = format!("Todos for {}:\n", username);
                 if todos.is_empty() {
                     r.push_str("\nNo todos for today :)")
