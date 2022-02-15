@@ -3,6 +3,7 @@ use frankenstein::{objects::User, Message};
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, Pool, Postgres};
+use tracing::info;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, FromRow)]

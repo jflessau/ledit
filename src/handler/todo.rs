@@ -1,7 +1,4 @@
-use crate::{
-    error::LeditError,
-    handler::{chat_member::get_random_chat_member, today},
-};
+use crate::{error::LeditError, handler::chat_member::get_random_chat_member, util::today};
 use chrono::NaiveDate;
 use frankenstein::{objects::User, Message, SendMessageParams, SendMessageParamsBuilder};
 use itertools::Itertools;
@@ -216,7 +213,7 @@ async fn get_all_todos_as_msg_string(message: &Message, pool: &Pool<Postgres>) -
 }
 
 pub async fn get_todos(chat_id: i64, pool: &Pool<Postgres>) -> Result<String, LeditError> {
-    // get all todos that are scheduled for today or earlier
+    // get actionable todos
     let mut todos_by_username = sqlx::query!(
         r#"
             select 
