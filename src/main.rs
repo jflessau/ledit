@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate log;
 use dotenv::dotenv;
-use frankenstein::{GetUpdatesParamsBuilder, TelegramApi};
+use frankenstein::{AsyncTelegramApi as TelegramApi, GetUpdatesParamsBuilder};
 use std::error::Error;
 
 mod action;
@@ -22,11 +22,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
     }
     tracing_subscriber::fmt::init();
 
-    // starting two threads, one for processign telegram api updates and one for time based db interactions
+    // start bot
     tracing::info!("starting bot...");
-    let listen_for_updates_thread = tokio::task::spawn(listen_for_updates());
-    let re_schedule_todos_thread = tokio::task::spawn(interval_actions());
-    let (_, _) = (listen_for_updates_thread.await?, re_schedule_todos_thread.await?);
+    let (_, _) = tokio::join!(listen_for_updates(), interval_actions());
 
     Ok(())
 }
@@ -37,12 +35,13 @@ async fn listen_for_updates() -> Result<(), error::LeditError> {
     sqlx::migrate!("./migrations").run(&pool).await?;
 
     let mut update_params_builder = GetUpdatesParamsBuilder::default();
-    update_params_builder.allowed_updates(vec!["message".to_string(), "callback_query".to_string()]);
+    update_params_builder.allowed_updates(vec!["message".to_string()]);
 
     let mut update_params = update_params_builder.build().unwrap();
 
     loop {
-        let result = api.get_updates(&update_params);
+        let result = api.get_updates(&update_params).await;
+
         tracing::debug!("received telegram api update");
 
         match result {
@@ -73,7 +72,7 @@ async fn listen_for_updates() -> Result<(), error::LeditError> {
                             error!("{:#?}", err);
                         },
                         Some(Ok(Some(response))) =>
-                            if let Err(err) = api.send_message(&response) {
+                            if let Err(err) = api.send_message(&response).await {
                                 error!("failed to send message: {:?}", err);
                             },
                         _ => {},

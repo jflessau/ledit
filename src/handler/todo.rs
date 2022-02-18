@@ -64,10 +64,10 @@ pub async fn handle_add_todo(
 }
 
 pub async fn handle_list_todos(message: &Message, pool: &Pool<Postgres>) -> Result<SendMessageParams, LeditError> {
-    let mut text = get_all_todos_as_msg_string(message, pool).await?;
+    let mut text = get_all_todos_as_string(message, pool).await?;
 
     text.push_str("\n\n\n");
-    text.push_str(&get_todos(message.chat.id, pool).await?);
+    text.push_str(&get_todos_by_username_as_string(message.chat.id, pool).await?);
 
     let send_message_params = SendMessageParamsBuilder::default()
         .chat_id(message.chat.id)
@@ -102,7 +102,7 @@ pub async fn handle_delete_todo(
         .await?;
 
         let mut text = format!("Deleted: {}\n\n", todo_to_delete.description);
-        text.push_str(&get_all_todos_as_msg_string(message, pool).await?);
+        text.push_str(&get_all_todos_as_string(message, pool).await?);
 
         let send_message_params = SendMessageParamsBuilder::default()
             .chat_id(message.chat.id)
@@ -179,7 +179,7 @@ pub async fn handle_check_todo(
     }
 }
 
-async fn get_all_todos_as_msg_string(message: &Message, pool: &Pool<Postgres>) -> Result<String, LeditError> {
+async fn get_all_todos_as_string(message: &Message, pool: &Pool<Postgres>) -> Result<String, LeditError> {
     let todos = sqlx::query_as!(
         Todo,
         "select * from todos where chat_id = $1 order by description asc",
@@ -201,7 +201,7 @@ async fn get_all_todos_as_msg_string(message: &Message, pool: &Pool<Postgres>) -
         } else {
             "".to_string()
         };
-        text.push_str(&format!("\n {}. {} {} {}", n, checkbox, todo.description, recurring));
+        text.push_str(&format!("\n{} {}. {} {} ", checkbox, n, todo.description, recurring));
         n += 1;
     }
 
@@ -212,7 +212,7 @@ async fn get_all_todos_as_msg_string(message: &Message, pool: &Pool<Postgres>) -
     Ok(text)
 }
 
-pub async fn get_todos(chat_id: i64, pool: &Pool<Postgres>) -> Result<String, LeditError> {
+pub async fn get_todos_by_username_as_string(chat_id: i64, pool: &Pool<Postgres>) -> Result<String, LeditError> {
     // get actionable todos
     let mut todos_by_username = sqlx::query!(
         r#"

@@ -1,11 +1,11 @@
 use chrono::{Datelike, NaiveDate, Utc};
-use frankenstein::Api;
+use frankenstein::AsyncApi;
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 use std::env;
 
-pub async fn get_pool_and_api() -> (Pool<Postgres>, Api) {
+pub async fn get_pool_and_api() -> (Pool<Postgres>, AsyncApi) {
     let token = env::var("TOKEN").expect("missing TOKEN env var");
-    let api = Api::new(&token);
+    let api = AsyncApi::new(&token);
     let database_url = env::var("DATABASE_URL").expect("missing DATABASE_URL env var");
     let pool = PgPoolOptions::new()
         .max_connections(16)

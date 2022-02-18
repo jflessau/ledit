@@ -3,7 +3,7 @@ use crate::{
     handler::{chat_member::get_random_chat_member, todo::Todo},
     util,
 };
-use frankenstein::{Api, SendMessageParamsBuilder, TelegramApi};
+use frankenstein::{AsyncApi, AsyncTelegramApi, SendMessageParamsBuilder};
 use sqlx::{Pool, Postgres};
 use std::env;
 use tokio::time::{sleep, Duration};
@@ -81,7 +81,7 @@ async fn re_schedule_todos(pool: &Pool<Postgres>) -> Result<(), error::LeditErro
     Ok(())
 }
 
-async fn delete_one_time_todos(pool: &Pool<Postgres>, api: &Api) -> Result<(), error::LeditError> {
+async fn delete_one_time_todos(pool: &Pool<Postgres>, api: &AsyncApi) -> Result<(), error::LeditError> {
     tracing::info!("delete one-time todos");
 
     let todos = sqlx::query_as!(
@@ -116,7 +116,8 @@ async fn delete_one_time_todos(pool: &Pool<Postgres>, api: &Api) -> Result<(), e
                 .chat_id(todo.chat_id)
                 .text(&format!("🗑 Deleting old & done todo: {}", todo.description))
                 .build()?,
-        )?;
+        )
+        .await?;
     }
 
     Ok(())
