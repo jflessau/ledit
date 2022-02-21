@@ -10,7 +10,7 @@ Telegram bot for fair task assignment.
 
 Add todos to todo-lists within telegram chats. Each todo is assigned to a random chat member.
 
-Your roommates adds a tedious todo? He may end up assigned to it himself. But the same thing could happen to you.
+Your roommate adds a tedious todo? He may end up assigned to it himself. But the same thing could happen to you.
 This makes assignments fair.
 
 You can also create recurring todos, like cleaning all mirrors every 20 days. Once done, recurring todos will be re-assigned to a random chat member.
@@ -38,7 +38,8 @@ Overdue todos are marked with a ⏳-emoji (see the screenshots below).
 
 1. Rename `.env-example` to `.env` and fill it with your credentials.
 2. Use `docker-compose up` to spin up the postgres database.
-3. Install [sqlx-cli](https://crates.io/crates/sqlx-cli) and run the migrations with `sqlx migrate run`
+3. Install [sqlx-cli](https://crates.io/crates/sqlx-cli) and run the migrations with `sqlx migrate run`.
+4. Start the bot with `cargo run`.
 
 Happy hacking 😊
 

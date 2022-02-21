@@ -182,7 +182,16 @@ pub async fn handle_check_todo(
 async fn get_all_todos_as_string(message: &Message, pool: &Pool<Postgres>) -> Result<String, LeditError> {
     let todos = sqlx::query_as!(
         Todo,
-        "select * from todos where chat_id = $1 order by description asc",
+        r#"
+            select 
+                * 
+            from 
+                todos 
+            where 
+                chat_id = $1 
+            order by 
+                interval_days is null desc, interval_days asc, description asc
+        "#,
         message.chat.id,
     )
     .fetch_all(pool)
