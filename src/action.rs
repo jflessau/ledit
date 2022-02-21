@@ -17,16 +17,16 @@ pub enum Action<'a> {
     Help(&'a Message),
     AddTodo {
         title: String,
-        interval_days: Option<i64>,
+        interval_days: Option<usize>,
         message: &'a Message,
     },
     ListTodos(&'a Message),
     DeleteTodo {
-        num: i64,
+        num: usize,
         message: &'a Message,
     },
     CheckTodo {
-        num: i64,
+        num: usize,
         message: &'a Message,
     },
 }
@@ -83,7 +83,7 @@ impl<'a> Action<'a> {
                 .to_string();
             return Action::AddTodo {
                 title,
-                interval_days: interval_str.parse::<i64>().ok(),
+                interval_days: interval_str.parse::<usize>().ok(),
                 message,
             };
         }
@@ -107,14 +107,14 @@ impl<'a> Action<'a> {
         }
 
         // delete todo
-        let delete_todo_re = Regex::new(r"((?i)/delete(?-i))[ ]+([0-9]+)").expect("building delete_todo_re failed");
+        let delete_todo_re = Regex::new(r"((?i)/delete(?-i))[ ]+([0-9]{0,4})").expect("building delete_todo_re failed");
         if let Some(caps) = delete_todo_re.captures(&s) {
             let num = caps.get(2).expect("caps get 2 failed").as_str().parse().unwrap_or(1);
             return Action::DeleteTodo { num, message };
         }
 
         // check todo
-        let check_todo_re = Regex::new(r"((?i)/check(?-i))[ ]+([0-9]+)").expect("building check_todo_re failed");
+        let check_todo_re = Regex::new(r"((?i)/check(?-i))[ ]+([0-9]{0,4})").expect("building check_todo_re failed");
         if let Some(caps) = check_todo_re.captures(&s) {
             let num = caps.get(2).expect("caps get 2 failed").as_str().parse().unwrap_or(1);
             return Action::CheckTodo { num, message };

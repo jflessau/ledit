@@ -19,7 +19,7 @@ pub struct Todo {
 }
 pub async fn handle_add_todo(
     title: String,
-    mut interval_days: Option<i64>,
+    mut interval_days: Option<usize>,
     message: &Message,
     pool: &Pool<Postgres>,
 ) -> Result<SendMessageParams, LeditError> {
@@ -49,7 +49,7 @@ pub async fn handle_add_todo(
         Uuid::new_v4(),
         message.chat.id,
         &title,
-        interval_days,
+        interval_days.map(|v| v as i64),
         assigned_user,
     )
     .fetch_one(pool)
@@ -78,18 +78,12 @@ pub async fn handle_list_todos(message: &Message, pool: &Pool<Postgres>) -> Resu
 }
 
 pub async fn handle_delete_todo(
-    num: i64,
+    num: usize,
     message: &Message,
     pool: &Pool<Postgres>,
 ) -> Result<SendMessageParams, LeditError> {
-    let todo_to_delete = sqlx::query_as!(
-        Todo,
-        "select * from todos where chat_id = $1 order by description asc offset $2",
-        message.chat.id,
-        num - 1
-    )
-    .fetch_optional(pool)
-    .await?;
+    let todos = get_sorted_todos(message.chat.id, pool).await?;
+    let todo_to_delete = todos.get(num.saturating_sub(1));
 
     if let Some(todo_to_delete) = todo_to_delete {
         sqlx::query!(
@@ -121,7 +115,7 @@ pub async fn handle_delete_todo(
 }
 
 pub async fn handle_check_todo(
-    num: i64,
+    num: usize,
     message: &Message,
     pool: &Pool<Postgres>,
 ) -> Result<SendMessageParams, LeditError> {
@@ -134,16 +128,10 @@ pub async fn handle_check_todo(
         .fetch_one(pool)
         .await?;
 
-        let todo = sqlx::query_as!(
-            Todo,
-            "select * from todos where chat_id = $1 order by description asc offset $2",
-            message.chat.id,
-            num - 1
-        )
-        .fetch_optional(pool)
-        .await?;
+        let todos = get_sorted_todos(message.chat.id, pool).await?;
+        let todo_to_check = todos.get(num.saturating_sub(1)).cloned();
 
-        if let Some(mut todo) = todo {
+        if let Some(mut todo) = todo_to_check {
             todo.done_by = if todo.done_by.is_some() { None } else { Some(user.id) };
             sqlx::query!(r#"update todos set done_by = $1 where id = $2"#, todo.done_by, todo.id)
                 .execute(pool)
@@ -179,8 +167,8 @@ pub async fn handle_check_todo(
     }
 }
 
-async fn get_all_todos_as_string(message: &Message, pool: &Pool<Postgres>) -> Result<String, LeditError> {
-    let todos = sqlx::query_as!(
+async fn get_sorted_todos(chat_id: i64, pool: &Pool<Postgres>) -> Result<Vec<Todo>, LeditError> {
+    sqlx::query_as!(
         Todo,
         r#"
             select 
@@ -192,10 +180,15 @@ async fn get_all_todos_as_string(message: &Message, pool: &Pool<Postgres>) -> Re
             order by 
                 interval_days is null desc, interval_days asc, description asc
         "#,
-        message.chat.id,
+        chat_id,
     )
     .fetch_all(pool)
-    .await?;
+    .await
+    .map_err(|err| err.into())
+}
+
+async fn get_all_todos_as_string(message: &Message, pool: &Pool<Postgres>) -> Result<String, LeditError> {
+    let todos = get_sorted_todos(message.chat.id, pool).await?;
 
     let mut text = "List of all todos:\n".to_string();
     let mut n = 1;
@@ -223,6 +216,7 @@ async fn get_all_todos_as_string(message: &Message, pool: &Pool<Postgres>) -> Re
 
 pub async fn get_todos_by_username_as_string(chat_id: i64, pool: &Pool<Postgres>) -> Result<String, LeditError> {
     // get actionable todos
+
     let mut todos_by_username = sqlx::query!(
         r#"
             select 
@@ -235,8 +229,10 @@ pub async fn get_todos_by_username_as_string(chat_id: i64, pool: &Pool<Postgres>
                 t.done_by,
 
                 c.username
-            from todos as t
-            join chat_members as c on c.id = t.assigned_user
+            from 
+                todos as t
+            join 
+                chat_members as c on c.id = t.assigned_user
             where 
                 t.chat_id = $1
                 and c.chat_id = $1
@@ -251,7 +247,8 @@ pub async fn get_todos_by_username_as_string(chat_id: i64, pool: &Pool<Postgres>
                                 or (t.scheduled_for = $2 and t.done_by is not null))
                         )
                     )
-            order by t.done_by desc, t.description asc
+            order by 
+                t.done_by asc, t.description asc
         "#,
         chat_id,
         today(),
@@ -267,6 +264,7 @@ pub async fn get_todos_by_username_as_string(chat_id: i64, pool: &Pool<Postgres>
     todos_by_username.sort_by(|(a, _), (b, _)| b.partial_cmp(a).unwrap());
 
     // compose response message
+
     let text = if todos_by_username.is_empty() {
         "No todos for today :)".to_string()
     } else {

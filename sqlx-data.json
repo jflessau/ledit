@@ -12,114 +12,6 @@
       "nullable": []
     }
   },
-  "0c3c3330f328ac2758d81ad1dd538c7f17cba963a1dc1b9353b46dd3c321443c": {
-    "query": "\n            select \n                t.id,\n                t.chat_id,\n                t.description,\n                t.interval_days,\n                t.assigned_user,\n                t.scheduled_for,\n                t.done_by,\n\n                c.username\n            from todos as t\n            join chat_members as c on c.id = t.assigned_user\n            where \n                t.chat_id = $1\n                and c.chat_id = $1\n                and \n                    (\n                        (t.interval_days is null and t.scheduled_for <= $2)\n                        or \n                        (   \n                            t.interval_days is not null\n                            and (\n                                (t.scheduled_for <= $2 and t.done_by is null) \n                                or (t.scheduled_for = $2 and t.done_by is not null))\n                        )\n                    )\n            order by t.done_by desc, t.description asc\n        ",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "id",
-          "type_info": "Uuid"
-        },
-        {
-          "ordinal": 1,
-          "name": "chat_id",
-          "type_info": "Int8"
-        },
-        {
-          "ordinal": 2,
-          "name": "description",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 3,
-          "name": "interval_days",
-          "type_info": "Int8"
-        },
-        {
-          "ordinal": 4,
-          "name": "assigned_user",
-          "type_info": "Uuid"
-        },
-        {
-          "ordinal": 5,
-          "name": "scheduled_for",
-          "type_info": "Date"
-        },
-        {
-          "ordinal": 6,
-          "name": "done_by",
-          "type_info": "Uuid"
-        },
-        {
-          "ordinal": 7,
-          "name": "username",
-          "type_info": "Text"
-        }
-      ],
-      "parameters": {
-        "Left": [
-          "Int8",
-          "Date"
-        ]
-      },
-      "nullable": [
-        false,
-        false,
-        false,
-        true,
-        false,
-        false,
-        true,
-        false
-      ]
-    }
-  },
-  "0dd71cf7aea043c81c442f1e7284a3172f44564d037429c389c662efb00a8200": {
-    "query": "select * from chat_members where telegram_user_id = $1 and chat_id=$2",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "id",
-          "type_info": "Uuid"
-        },
-        {
-          "ordinal": 1,
-          "name": "telegram_user_id",
-          "type_info": "Int8"
-        },
-        {
-          "ordinal": 2,
-          "name": "chat_id",
-          "type_info": "Int8"
-        },
-        {
-          "ordinal": 3,
-          "name": "username",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 4,
-          "name": "todo_weight",
-          "type_info": "Int8"
-        }
-      ],
-      "parameters": {
-        "Left": [
-          "Int8",
-          "Int8"
-        ]
-      },
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false
-      ]
-    }
-  },
   "19d9bdd45de3d43aaef3a16f0c7a7f408893377a16d36b60f3a7ec28745f72f7": {
     "query": "\n            select \n                * \n            from \n                todos \n            where \n                chat_id = $1 \n            order by \n                interval_days is null desc, interval_days asc, description asc\n        ",
     "describe": {
@@ -290,6 +182,51 @@
       ]
     }
   },
+  "4137bbad73012afb062fc6bf6510ee67fbcc199f6a607590e1919c5b4fe96afb": {
+    "query": "select * from chat_members where telegram_user_id = $1 and chat_id = $2",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "telegram_user_id",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 2,
+          "name": "chat_id",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 3,
+          "name": "username",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 4,
+          "name": "todo_weight",
+          "type_info": "Int8"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
   "6b722ea4243e7294f5334562c12780d1a0ca88e79b158ce2dbe4d4f1329172da": {
     "query": "select id from chat_members where chat_id = $1",
     "describe": {
@@ -320,6 +257,69 @@
         ]
       },
       "nullable": []
+    }
+  },
+  "8fc1b2af2601e377b534f002572902672209abfacfdc83d3b7da2dd225b95cd8": {
+    "query": "\n            select \n                t.id,\n                t.chat_id,\n                t.description,\n                t.interval_days,\n                t.assigned_user,\n                t.scheduled_for,\n                t.done_by,\n\n                c.username\n            from \n                todos as t\n            join \n                chat_members as c on c.id = t.assigned_user\n            where \n                t.chat_id = $1\n                and c.chat_id = $1\n                and \n                    (\n                        (t.interval_days is null and t.scheduled_for <= $2)\n                        or \n                        (   \n                            t.interval_days is not null\n                            and (\n                                (t.scheduled_for <= $2 and t.done_by is null) \n                                or (t.scheduled_for = $2 and t.done_by is not null))\n                        )\n                    )\n            order by \n                t.done_by asc, t.description asc\n        ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "chat_id",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 2,
+          "name": "description",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "interval_days",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 4,
+          "name": "assigned_user",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 5,
+          "name": "scheduled_for",
+          "type_info": "Date"
+        },
+        {
+          "ordinal": 6,
+          "name": "done_by",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 7,
+          "name": "username",
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Date"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        true,
+        false
+      ]
     }
   },
   "90ac7524b998546e8d9434e1a510452a27c953cb5dffe2f9d1ad44797eba4f53": {
@@ -364,63 +364,6 @@
       ],
       "parameters": {
         "Left": []
-      },
-      "nullable": [
-        false,
-        false,
-        false,
-        true,
-        false,
-        false,
-        true
-      ]
-    }
-  },
-  "9ba76b02864c53b27c8d25aca88117f0c1271f44dc7c006fe3c77689f5beb7cb": {
-    "query": "select * from todos where chat_id = $1 order by description asc offset $2",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "id",
-          "type_info": "Uuid"
-        },
-        {
-          "ordinal": 1,
-          "name": "chat_id",
-          "type_info": "Int8"
-        },
-        {
-          "ordinal": 2,
-          "name": "description",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 3,
-          "name": "interval_days",
-          "type_info": "Int8"
-        },
-        {
-          "ordinal": 4,
-          "name": "assigned_user",
-          "type_info": "Uuid"
-        },
-        {
-          "ordinal": 5,
-          "name": "scheduled_for",
-          "type_info": "Date"
-        },
-        {
-          "ordinal": 6,
-          "name": "done_by",
-          "type_info": "Uuid"
-        }
-      ],
-      "parameters": {
-        "Left": [
-          "Int8",
-          "Int8"
-        ]
       },
       "nullable": [
         false,

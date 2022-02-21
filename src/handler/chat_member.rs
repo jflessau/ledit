@@ -25,7 +25,7 @@ pub async fn register_chat_member(message: &Message, pool: &Pool<Postgres>) -> R
     {
         let chat_member = sqlx::query_as!(
             ChatMember,
-            "select * from chat_members where telegram_user_id = $1 and chat_id=$2",
+            "select * from chat_members where telegram_user_id = $1 and chat_id = $2",
             *id as i64,
             message.chat.id,
         )
