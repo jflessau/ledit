@@ -1,5 +1,6 @@
 Hi there 👋
 
-I'm Collabot and I'm here to help you organizing tasks in telegram group chats. 
+I'm ledit bot. 
+Use me to create todo-lists in telegram group chats.
 
-Use the /help command to learn about my features 🙂
+Use the /help command to see all features 🙂

@@ -4,7 +4,7 @@
 
 Telegram bot for fair task assignment.
 
-("ledit" = **le**t's **d**o **i**t **t**ogether)
+(ledit = **le**t's **d**o **i**t **t**ogether)
 
 ## Features
 
@@ -29,10 +29,10 @@ Overdue todos are marked with a ⏳-emoji (see the screenshots below).
 
 ### Screenshots
 
-- [Add and list todos](screenshots/add-and-list.jpg)
-- [Check todo](screenshots/check.jpg)
-- [Delete todo](screenshots/delete.jpg)
-- [Overdue todo](screenshots/delayed-todo.jpg)
+- [add and list todos](screenshots/add-and-list.jpg)
+- [check todo](screenshots/check.jpg)
+- [delete todo](screenshots/delete.jpg)
+- [overdue todo](screenshots/overdue-todo.jpg)
 
 ## Development
 

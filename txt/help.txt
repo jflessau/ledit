@@ -2,5 +2,5 @@
 /add <your todo> - add todo
 /add every 2 days: <your todo> - add recurring todo
 /todos - get a numbered list of todos
-/check <num> - (un-)check todo (e.g. /check 2)
-/delete <num> - delete todo (e.g. /delete 4)
+/check 1 - (un-)check todo number 1
+/delete 2 - delete todo number 2
