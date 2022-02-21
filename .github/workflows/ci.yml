@@ -86,7 +86,7 @@ jobs:
             ghcr.io/jflessau/ledit:${{ steps.shortened_hash.outputs.sha_short }}
 
   telegram_build_and_publish_notification:
-    name: Send Telegram Notification
+    name: Telegram Message on CI Success
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     needs: [build_and_publish]
