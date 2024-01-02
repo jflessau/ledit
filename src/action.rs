@@ -38,8 +38,13 @@ impl fmt::Display for Action<'_> {
             Action::Start(_) => "Start".to_string(),
             Action::Help(_) => "Help".to_string(),
             Action::AddTodo {
-                title, interval_days, ..
-            } => format!("AddTodo {{ title: {}, interval_days: {:?} }}", title, interval_days),
+                title,
+                interval_days,
+                ..
+            } => format!(
+                "AddTodo {{ title: {}, interval_days: {:?} }}",
+                title, interval_days
+            ),
             Action::ListTodos(_) => "ListTodos".to_string(),
             Action::DeleteTodo { num, .. } => format!("DeleteTodo {{ num: {} }}", num),
             Action::CheckTodo { num, .. } => format!("CheckTodo: {{ num: {} }}", num),
@@ -92,7 +97,11 @@ impl<'a> Action<'a> {
         let add_todo_re = Regex::new(r"\A((?i)/add(?-i)([ ]+)([a-zA-Z0-9\-_:,. ].{0,64}))")
             .expect("add_one_time_todo_re construction failed");
         if let Some(caps) = add_todo_re.captures(&s) {
-            let title: String = caps.get(3).expect("add_re caps failed").as_str().to_string();
+            let title: String = caps
+                .get(3)
+                .expect("add_re caps failed")
+                .as_str()
+                .to_string();
             return Action::AddTodo {
                 title,
                 interval_days: None,
@@ -101,22 +110,35 @@ impl<'a> Action<'a> {
         }
 
         // list todos
-        let list_todos_re = Regex::new(r"\A((?i)/todos(?-i))").expect("list_todos_re construction failed");
+        let list_todos_re =
+            Regex::new(r"\A((?i)/todos(?-i))").expect("list_todos_re construction failed");
         if list_todos_re.captures(&s).is_some() {
             return Action::ListTodos(message);
         }
 
         // delete todo
-        let delete_todo_re = Regex::new(r"((?i)/delete(?-i))[ ]+([0-9]{0,4})").expect("building delete_todo_re failed");
+        let delete_todo_re = Regex::new(r"((?i)/delete(?-i))[ ]+([0-9]{0,4})")
+            .expect("building delete_todo_re failed");
         if let Some(caps) = delete_todo_re.captures(&s) {
-            let num = caps.get(2).expect("caps get 2 failed").as_str().parse().unwrap_or(1);
+            let num = caps
+                .get(2)
+                .expect("caps get 2 failed")
+                .as_str()
+                .parse()
+                .unwrap_or(1);
             return Action::DeleteTodo { num, message };
         }
 
         // check todo
-        let check_todo_re = Regex::new(r"((?i)/check(?-i))[ ]+([0-9]{0,4})").expect("building check_todo_re failed");
+        let check_todo_re = Regex::new(r"((?i)/check(?-i))[ ]+([0-9]{0,4})")
+            .expect("building check_todo_re failed");
         if let Some(caps) = check_todo_re.captures(&s) {
-            let num = caps.get(2).expect("caps get 2 failed").as_str().parse().unwrap_or(1);
+            let num = caps
+                .get(2)
+                .expect("caps get 2 failed")
+                .as_str()
+                .parse()
+                .unwrap_or(1);
             return Action::CheckTodo { num, message };
         }
 
@@ -125,7 +147,10 @@ impl<'a> Action<'a> {
         Action::UnknownMessage
     }
 
-    pub async fn execute(self, pool: &Pool<Postgres>) -> Result<Option<SendMessageParams>, LeditError> {
+    pub async fn execute(
+        self,
+        pool: &Pool<Postgres>,
+    ) -> Result<Option<SendMessageParams>, LeditError> {
         let res = match self {
             Action::Help(message) => Some(handle_help(message)?),
             Action::Start(message) => Some(handle_start(message)?),
@@ -135,8 +160,12 @@ impl<'a> Action<'a> {
                 message,
             } => Some(handle_add_todo(title, interval_days, message, pool).await?),
             Action::ListTodos(message) => Some(handle_list_todos(message, pool).await?),
-            Action::DeleteTodo { num, message } => Some(handle_delete_todo(num, message, pool).await?),
-            Action::CheckTodo { num, message } => Some(handle_check_todo(num, message, pool).await?),
+            Action::DeleteTodo { num, message } => {
+                Some(handle_delete_todo(num, message, pool).await?)
+            }
+            Action::CheckTodo { num, message } => {
+                Some(handle_check_todo(num, message, pool).await?)
+            }
             Action::UnknownMessage => None,
         };
 

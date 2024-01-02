@@ -17,6 +17,6 @@ pub async fn get_pool_and_api() -> (Pool<Postgres>, AsyncApi) {
 }
 
 pub fn today() -> NaiveDate {
-    let today = Utc::today();
-    NaiveDate::from_ymd(today.year(), today.month(), today.day())
+    let today = Utc::now();
+    NaiveDate::from_ymd_opt(today.year(), today.month(), today.day()).expect("invalid date")
 }

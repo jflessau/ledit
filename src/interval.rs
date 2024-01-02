@@ -17,7 +17,9 @@ pub async fn interval_actions() -> Result<(), error::LeditError> {
         })
         .parse::<u64>()
         .unwrap_or_else(|_| {
-            tracing::warn!("failed to parse value for env var `interval_MS`, using default value 10000");
+            tracing::warn!(
+                "failed to parse value for env var `interval_MS`, using default value 10000"
+            );
             10000
         });
 
@@ -56,7 +58,10 @@ async fn re_schedule_todos(pool: &Pool<Postgres>) -> Result<(), error::LeditErro
     .await?;
 
     if !todos_to_re_schedule.is_empty() {
-        tracing::info!("amount of todos to re-schedule {:#?}", todos_to_re_schedule.len());
+        tracing::info!(
+            "amount of todos to re-schedule {:#?}",
+            todos_to_re_schedule.len()
+        );
     }
 
     for todo in todos_to_re_schedule {
@@ -81,7 +86,10 @@ async fn re_schedule_todos(pool: &Pool<Postgres>) -> Result<(), error::LeditErro
     Ok(())
 }
 
-async fn delete_one_time_todos(pool: &Pool<Postgres>, api: &AsyncApi) -> Result<(), error::LeditError> {
+async fn delete_one_time_todos(
+    pool: &Pool<Postgres>,
+    api: &AsyncApi,
+) -> Result<(), error::LeditError> {
     tracing::info!("delete one-time todos");
 
     let todos = sqlx::query_as!(

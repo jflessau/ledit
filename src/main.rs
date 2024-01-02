@@ -61,7 +61,7 @@ async fn listen_for_updates() -> Result<(), error::LeditError> {
                             Err(err) => {
                                 tracing::error!("failed to respond to action, err: {}", err);
                                 None
-                            },
+                            }
                         }
                     } else {
                         None
@@ -70,21 +70,24 @@ async fn listen_for_updates() -> Result<(), error::LeditError> {
                     match response {
                         Some(Err(err)) => {
                             error!("{:#?}", err);
-                        },
+                        }
                         Some(Ok(Some(response))) => {
                             if let Err(err) = api.send_message(&response).await {
                                 error!("failed to send message: {:?}", err);
                             }
-                        },
-                        _ => {},
+                        }
+                        _ => {}
                     }
 
-                    update_params = update_params_builder.offset(update.update_id + 1).build().unwrap();
+                    update_params = update_params_builder
+                        .offset(update.update_id + 1)
+                        .build()
+                        .unwrap();
                 }
-            },
+            }
             Err(error) => {
                 tracing::error!("failed to process telegram api update, err: {:?}", error);
-            },
+            }
         }
     }
 }

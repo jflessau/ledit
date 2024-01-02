@@ -15,7 +15,10 @@ pub struct ChatMember {
     pub todo_weight: i64,
 }
 
-pub async fn register_chat_member(message: &Message, pool: &Pool<Postgres>) -> Result<(), LeditError> {
+pub async fn register_chat_member(
+    message: &Message,
+    pool: &Pool<Postgres>,
+) -> Result<(), LeditError> {
     if let Some(User {
         id,
         first_name,
@@ -59,7 +62,10 @@ pub async fn register_chat_member(message: &Message, pool: &Pool<Postgres>) -> R
     Ok(())
 }
 
-pub async fn get_random_chat_member(chat_id: i64, pool: &Pool<Postgres>) -> Result<Uuid, LeditError> {
+pub async fn get_random_chat_member(
+    chat_id: i64,
+    pool: &Pool<Postgres>,
+) -> Result<Uuid, LeditError> {
     let users = sqlx::query!(r#"select id from chat_members where chat_id = $1"#, chat_id)
         .fetch_all(pool)
         .await?

@@ -63,7 +63,10 @@ pub async fn handle_add_todo(
     Ok(send_message_params)
 }
 
-pub async fn handle_list_todos(message: &Message, pool: &Pool<Postgres>) -> Result<SendMessageParams, LeditError> {
+pub async fn handle_list_todos(
+    message: &Message,
+    pool: &Pool<Postgres>,
+) -> Result<SendMessageParams, LeditError> {
     let mut text = get_all_todos_as_string(message, pool).await?;
 
     text.push_str("\n\n\n");
@@ -132,14 +135,26 @@ pub async fn handle_check_todo(
         let todo_to_check = todos.get(num.saturating_sub(1)).cloned();
 
         if let Some(mut todo) = todo_to_check {
-            todo.done_by = if todo.done_by.is_some() { None } else { Some(user.id) };
-            sqlx::query!(r#"update todos set done_by = $1 where id = $2"#, todo.done_by, todo.id)
-                .execute(pool)
-                .await?;
+            todo.done_by = if todo.done_by.is_some() {
+                None
+            } else {
+                Some(user.id)
+            };
+            sqlx::query!(
+                r#"update todos set done_by = $1 where id = $2"#,
+                todo.done_by,
+                todo.id
+            )
+            .execute(pool)
+            .await?;
 
             let text = format!(
                 "{} {}",
-                if todo.done_by.is_some() { "✅" } else { "☑️" },
+                if todo.done_by.is_some() {
+                    "✅"
+                } else {
+                    "☑️"
+                },
                 todo.description
             );
 
@@ -187,7 +202,10 @@ async fn get_sorted_todos(chat_id: i64, pool: &Pool<Postgres>) -> Result<Vec<Tod
     .map_err(|err| err.into())
 }
 
-async fn get_all_todos_as_string(message: &Message, pool: &Pool<Postgres>) -> Result<String, LeditError> {
+async fn get_all_todos_as_string(
+    message: &Message,
+    pool: &Pool<Postgres>,
+) -> Result<String, LeditError> {
     let todos = get_sorted_todos(message.chat.id, pool).await?;
 
     let mut text = "List of all todos:\n".to_string();
@@ -203,11 +221,18 @@ async fn get_all_todos_as_string(message: &Message, pool: &Pool<Postgres>) -> Re
             "☑️"
         };
         let recurring = if let Some(interval_days) = todo.interval_days {
-            format!("(🔄 {} day{})", interval_days, if interval_days > 1 { "s" } else { "" })
+            format!(
+                "(🔄 {} day{})",
+                interval_days,
+                if interval_days > 1 { "s" } else { "" }
+            )
         } else {
             "".to_string()
         };
-        text.push_str(&format!("\n{} {}. {} {} ", checkbox, n, todo.description, recurring));
+        text.push_str(&format!(
+            "\n{} {}. {} {} ",
+            checkbox, n, todo.description, recurring
+        ));
         n += 1;
     }
 
@@ -218,7 +243,10 @@ async fn get_all_todos_as_string(message: &Message, pool: &Pool<Postgres>) -> Re
     Ok(text)
 }
 
-pub async fn get_todos_by_username_as_string(chat_id: i64, pool: &Pool<Postgres>) -> Result<String, LeditError> {
+pub async fn get_todos_by_username_as_string(
+    chat_id: i64,
+    pool: &Pool<Postgres>,
+) -> Result<String, LeditError> {
     // get actionable todos
 
     let mut todos_by_username = sqlx::query!(
@@ -262,7 +290,6 @@ pub async fn get_todos_by_username_as_string(chat_id: i64, pool: &Pool<Postgres>
     .into_iter()
     .into_group_map_by(|v| v.username.clone())
     .into_iter()
-    .map(|(k, v)| (k, v))
     .collect::<Vec<(String, _)>>();
 
     todos_by_username.sort_by(|(a, _), (b, _)| b.partial_cmp(a).unwrap());
