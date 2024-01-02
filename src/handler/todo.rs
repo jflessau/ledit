@@ -194,7 +194,11 @@ async fn get_all_todos_as_string(message: &Message, pool: &Pool<Postgres>) -> Re
     let mut n = 1;
     for todo in &todos {
         let checkbox = if todo.done_by.is_some() {
-            if todo.scheduled_for == today() { "✅" } else { "🗓" }
+            if todo.scheduled_for == today() {
+                "✅"
+            } else {
+                "🗓"
+            }
         } else {
             "☑️"
         };

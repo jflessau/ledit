@@ -51,7 +51,7 @@ impl fmt::Display for Action<'_> {
 
 impl<'a> Action<'a> {
     pub fn from_message(message: &'a Message) -> Self {
-        let s = message.text.clone().unwrap_or_else(|| "".to_string());
+        let s = message.text.clone().unwrap_or_default();
 
         // start
         let start_re = Regex::new(r"\A((?i)/start(?-i))").expect("start_re construction failed");

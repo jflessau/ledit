@@ -20,5 +20,7 @@ pub enum LeditError {
 }
 
 impl From<frankenstein::Error> for LeditError {
-    fn from(err: frankenstein::Error) -> Self { LeditError::Frankenstein(format!("{:?}", err)) }
+    fn from(err: frankenstein::Error) -> Self {
+        LeditError::Frankenstein(format!("{:?}", err))
+    }
 }

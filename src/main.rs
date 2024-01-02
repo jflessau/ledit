@@ -45,7 +45,7 @@ async fn listen_for_updates() -> Result<(), error::LeditError> {
         tracing::debug!("received telegram api update");
 
         match result {
-            Ok(response) =>
+            Ok(response) => {
                 for update in response.result {
                     let response = if let Some(message) = update.message {
                         let action = Action::from_message(&message);
@@ -71,15 +71,17 @@ async fn listen_for_updates() -> Result<(), error::LeditError> {
                         Some(Err(err)) => {
                             error!("{:#?}", err);
                         },
-                        Some(Ok(Some(response))) =>
+                        Some(Ok(Some(response))) => {
                             if let Err(err) = api.send_message(&response).await {
                                 error!("failed to send message: {:?}", err);
-                            },
+                            }
+                        },
                         _ => {},
                     }
 
                     update_params = update_params_builder.offset(update.update_id + 1).build().unwrap();
-                },
+                }
+            },
             Err(error) => {
                 tracing::error!("failed to process telegram api update, err: {:?}", error);
             },

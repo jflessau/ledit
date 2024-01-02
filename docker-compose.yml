@@ -1,4 +1,4 @@
-version: '2'
+version: "2"
 services:
   db:
     image: postgres:14.1-alpine
@@ -7,4 +7,5 @@ services:
       - POSTGRES_USER=dbuser
       - POSTGRES_PASSWORD=password
     ports:
-      - "6432:5432"
+      - "9433:5432"
+
